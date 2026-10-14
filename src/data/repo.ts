@@ -12,6 +12,7 @@ import {
   type OpenOneInput,
   type TapDirection,
 } from '../domain/rules';
+import { RECENT_WINDOW_MS } from '../domain/quickAdd';
 import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
 import type { CategoryKey, ID, Item, ListEntry, PackageSize } from '../domain/types';
 import { guessCategory } from '../ui/icons';
@@ -150,14 +151,27 @@ export class Repo {
 
   private async changeItem(itemId: ID, mutate: (item: Item) => Partial<Item> | null): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const changes = mutate(item);
       if (!changes) return NO_CHANGE;
       await db.items.update(itemId, { ...changes, updatedAt: this.now() });
+      await this.touch(itemId);
       return this.reconcile(itemId);
     });
+  }
+
+  // ---------- Activity (Quick add's recent & frequent) ----------
+
+  /** Logs a tap burst or edit. Call inside a transaction that includes db.activity. */
+  private async touch(itemId: ID) {
+    await this.db.activity.add({ itemId, at: this.now() });
+  }
+
+  /** Drops activity older than the ranking window. Run once at startup. */
+  async pruneActivity(): Promise<number> {
+    return this.db.activity.where('at').below(this.now() - RECENT_WINDOW_MS).delete();
   }
 
   // ---------- Items ----------
@@ -178,8 +192,9 @@ export class Repo {
       createdAt: t,
       updatedAt: t,
     };
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       await db.items.add(item);
+      await this.touch(item.id);
       return { id: item.id, change: await this.reconcile(item.id) };
     });
   }
@@ -187,7 +202,7 @@ export class Repo {
   /** Edits fields. Renaming re-guesses the icon until the user has picked one. */
   async updateItem(itemId: ID, patch: ItemPatch): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const changes: Partial<Item> = { ...patch, updatedAt: this.now() };
@@ -209,6 +224,7 @@ export class Repo {
         if (patch.preferredStoreId && e.storeId === null) next.storeId = patch.preferredStoreId;
         if (Object.keys(next).length) await db.listEntries.put({ ...e, ...next, updatedAt: this.now() });
       }
+      await this.touch(itemId);
       return this.reconcile(itemId);
     });
   }
@@ -234,7 +250,7 @@ export class Repo {
 
   async restoreItem(itemId: ID): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const restored: Item = { ...item, updatedAt: this.now() };
@@ -247,7 +263,7 @@ export class Repo {
   /** Creates a linked leftover; optionally takes one from the parent. */
   async openOne(parentId: ID, input: OpenOneInput): Promise<{ leftoverId: ID; parentChange: ItemChange }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const parent = await db.items.get(parentId);
       if (!parent) throw new Error(`No item ${parentId}`);
       const { leftover, parentAmount } = buildLeftover(parent, input);
@@ -271,7 +287,7 @@ export class Repo {
    */
   async addListEntry(input: NewEntryInput): Promise<{ id: ID; missing: ReturnType<typeof missingForList> }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const item = input.itemId ? await db.items.get(input.itemId) : undefined;
       const t = this.now();
       const entry: ListEntry = {
@@ -309,7 +325,7 @@ export class Repo {
   /** Swap between the item's preferred and secondary store. No-op if it lacks either. */
   async moveEntryToAlternate(entryId: ID): Promise<void> {
     const { db } = this;
-    await db.transaction('rw', db.items, db.listEntries, async () => {
+    await db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const e = await db.listEntries.get(entryId);
       if (!e) return;
       const item = e.itemId ? await db.items.get(e.itemId) : undefined;
@@ -324,7 +340,7 @@ export class Repo {
    */
   async logPurchase(entryId: ID, quantity: number): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const e = await db.listEntries.get(entryId);
       if (!e) throw new Error(`No entry ${entryId}`);
       const t = this.now();
@@ -332,6 +348,7 @@ export class Repo {
       const item = e.itemId ? await db.items.get(e.itemId) : undefined;
       if (!item || quantity <= 0) return NO_CHANGE;
       await db.items.update(item.id, { amount: applyPurchase(item, quantity), updatedAt: t });
+      await this.touch(item.id);
       return this.reconcile(item.id);
     });
   }
@@ -342,7 +359,7 @@ export class Repo {
    */
   async finishTrip(): Promise<{ cleared: number }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
       const done = (await db.listEntries.toArray()).filter((e) => e.checked);
       await db.listEntries.bulkDelete(done.map((e) => e.id));
       const itemIds = new Set(done.flatMap((e) => (e.itemId ? [e.itemId] : [])));

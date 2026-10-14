@@ -1,7 +1,8 @@
 // Live read hooks. Each returns undefined while the first query is loading.
 import { useLiveQuery } from 'dexie-react-hooks';
 import { buildInventory, locationLabel, type InventorySection } from '../domain/inventory';
-import { groupListByStore, type StoreGroup } from '../domain/rules';
+import { rankRecent } from '../domain/quickAdd';
+import { groupListByStore, isSetUp, type StoreGroup } from '../domain/rules';
 import type { ID, Item, ListEntry, Location, LocationGroup, Store } from '../domain/types';
 import { repo } from './repo';
 
@@ -85,6 +86,33 @@ export function useShoppingList(): ShoppingListData | undefined {
       groups: groupListByStore(entries, stores),
       remaining: entries.filter((e) => !e.checked).length,
       itemsById: new Map(items.map((i) => [i.id, i])),
+    };
+  }, []);
+}
+
+export interface QuickAddData {
+  /** Non-archived items. */
+  items: Item[];
+  /** Up to 9 for the Recent & frequent grid. */
+  recent: Item[];
+  /** "Pantry · Shelf 1" by item id. */
+  whereById: Map<ID, string>;
+}
+
+export function useQuickAdd(): QuickAddData | undefined {
+  return useLiveQuery(async () => {
+    const [all, events, locations, groups] = await Promise.all([
+      db.items.toArray(),
+      db.activity.toArray(),
+      db.locations.toArray(),
+      db.groups.toArray(),
+    ]);
+    const items = all.filter((i) => i.archivedAt == null);
+    return {
+      items,
+      // Only items with a bar: a tile tap adds one step, which means nothing untracked.
+      recent: rankRecent(events, items.filter(isSetUp), Date.now()),
+      whereById: new Map(items.map((i) => [i.id, locationLabel(i.locationId, locations, groups)])),
     };
   }, []);
 }

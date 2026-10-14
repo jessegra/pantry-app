@@ -78,6 +78,19 @@ describe('auto list entries', () => {
   });
 });
 
+describe('activity', () => {
+  it('logs taps, edits and new items; no-op taps are not logged; old rows prune', async () => {
+    await repo.tap('it-milk', 1);
+    await repo.tap('it-milk', -1);
+    await repo.setAmount('it-milk', 1); // unchanged: not logged
+    await repo.updateItem('it-eggs', { par: 18 });
+    const { id } = await repo.createItem({ name: 'Tortillas', locationId: 'loc-cab' });
+    expect((await db.activity.toArray()).map((a) => a.itemId)).toEqual(['it-milk', 'it-milk', 'it-eggs', id]);
+    const old = new Repo(db, () => Date.now() + 31 * 24 * 60 * 60 * 1000);
+    expect(await old.pruneActivity()).toBe(4);
+  });
+});
+
 describe('items', () => {
   it('creates with a guessed category, and re-guesses on rename until confirmed', async () => {
     const { id } = await repo.createItem({ name: 'Tortillas', locationId: 'loc-cab' });

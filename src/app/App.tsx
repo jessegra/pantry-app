@@ -6,7 +6,7 @@ import { NagProvider } from './NagProvider';
 import styles from './App.module.css';
 import { InventoryScreen } from '../screens/inventory/InventoryScreen';
 import { ItemDetailScreen } from '../screens/item/ItemDetailScreen';
-import { QuickAddScreen } from '../screens/QuickAddScreen';
+import { QuickAddScreen } from '../screens/add/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/ShoppingListScreen';
 import { JustShoppedScreen } from '../screens/JustShoppedScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';

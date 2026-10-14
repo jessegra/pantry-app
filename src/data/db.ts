@@ -1,10 +1,17 @@
 // Dexie (IndexedDB) schema. See SPEC §2. Only the repository imports this.
 import Dexie, { type EntityTable } from 'dexie';
-import type { Item, ListEntry, Location, LocationGroup, Staple, Store } from '../domain/types';
+import type { ID, Item, ListEntry, Location, LocationGroup, Staple, Store, Timestamp } from '../domain/types';
 
 export interface MetaRow {
   key: string;
   value: unknown;
+}
+
+/** One tap burst or edit on an item. Feeds Quick add's "Recent & frequent". Local only. */
+export interface ActivityRow {
+  id?: number;
+  itemId: ID;
+  at: Timestamp;
 }
 
 export class PantryDB extends Dexie {
@@ -15,6 +22,7 @@ export class PantryDB extends Dexie {
   listEntries!: EntityTable<ListEntry, 'id'>;
   staples!: EntityTable<Staple, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
+  activity!: EntityTable<ActivityRow, 'id'>;
 
   constructor(name = 'pantry') {
     super(name);
@@ -30,8 +38,12 @@ export class PantryDB extends Dexie {
       staples: 'id',
       meta: 'key',
     });
+    // v2 (M5): tap/edit log for Quick add's recent & frequent grid.
+    this.version(2).stores({
+      activity: '++id, itemId, at',
+    });
   }
 }
 
 /** Bump with every new Dexie version. Also written to meta for export/import. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
