@@ -30,6 +30,8 @@ test('core loop works offline', async ({ page, context }) => {
 
   // Just shopped: confirm everything except Dish soap.
   await page.getByRole('link', { name: 'I just shopped' }).click();
+  // Wait for the walk itself, or the first read below can catch the list's own heading.
+  await expect(page.getByRole('progressbar', { name: 'Items logged' })).toBeVisible();
   const seen: string[] = [];
   for (;;) {
     const end = page.getByRole('heading', { name: "That's the whole list." });
@@ -42,6 +44,7 @@ test('core loop works offline', async ({ page, context }) => {
     await expect(page.getByRole('heading', { level: 1, name, exact: true })).toHaveCount(0);
   }
   expect(seen).toEqual(['Chicken thighs', 'Black beans', 'Lemons', 'Coffee beans', 'Tortillas', 'Dish soap']);
+  await expect(page.getByText('6 of 6')).toBeVisible();
   await page.getByRole('button', { name: 'Finish' }).click();
   await expect(page.getByRole('heading', { name: 'Trip logged' })).toBeVisible();
 
