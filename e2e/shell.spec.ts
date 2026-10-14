@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('app shell opens offline after first visit', async ({ page, context }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'Load sample data' }).click();
+  // Wait for the write to land before reloading.
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload(); // now controlled by the service worker
 
