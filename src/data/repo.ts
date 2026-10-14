@@ -52,6 +52,7 @@ export type ItemPatch = Partial<
     | 'packageSize'
     | 'par'
     | 'lowThreshold'
+    | 'amount'
     | 'preferredStoreId'
     | 'secondaryStoreId'
     | 'category'

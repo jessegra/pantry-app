@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useNag } from '../../app/nag';
 import { useOptimisticAmount } from '../../data/useOptimisticAmount';
 import type { InventoryRow as Row } from '../../domain/inventory';
 import { formatAmount, getStatus, isSetUp } from '../../domain/rules';
@@ -30,8 +31,8 @@ export function InventoryRow({ row }: { row: Row }) {
 
 function TrackedPart({ row, onLongPress }: { row: Row; onLongPress: () => void }) {
   const { item } = row;
-  // TODO(M4): when a commit reports promptForStore, open the "Where do you buy…?" sheet.
-  const [amount, setAmount] = useOptimisticAmount(item);
+  const nag = useNag();
+  const [amount, setAmount] = useOptimisticAmount(item, (change) => nag.report(item.id, change));
   const current = { ...item, amount };
   return (
     <>

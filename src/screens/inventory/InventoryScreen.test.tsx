@@ -119,7 +119,7 @@ describe('inventory', () => {
       await renderApp();
       fireEvent.pointerDown(bar('Milk'), { pointerId: 1, isPrimary: true, clientX: 10, clientY: 10 });
       act(() => vi.advanceTimersByTime(500));
-      expect(await screen.findByText(/Item detail for it-milk/)).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { level: 1, name: 'Milk' })).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }

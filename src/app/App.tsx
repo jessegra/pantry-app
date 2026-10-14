@@ -1,10 +1,11 @@
-﻿import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { TabBar } from './TabBar';
 import { useInitialized, useShoppingList } from '../data/hooks';
 import { FirstRunScreen } from '../screens/FirstRunScreen';
+import { NagProvider } from './NagProvider';
 import styles from './App.module.css';
 import { InventoryScreen } from '../screens/inventory/InventoryScreen';
-import { ItemDetailScreen } from '../screens/ItemDetailScreen';
+import { ItemDetailScreen } from '../screens/item/ItemDetailScreen';
 import { QuickAddScreen } from '../screens/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/ShoppingListScreen';
 import { JustShoppedScreen } from '../screens/JustShoppedScreen';
@@ -38,6 +39,14 @@ export function App() {
   const initialized = useInitialized();
   if (initialized === undefined) return null; // first IndexedDB read: a few ms
   if (!initialized) return <FirstRunScreen />;
+  return (
+    <NagProvider>
+      <AppRoutes />
+    </NagProvider>
+  );
+}
+
+function AppRoutes() {
   return (
     <Routes>
       <Route element={<TabLayout />}>

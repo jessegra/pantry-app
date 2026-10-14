@@ -1,0 +1,321 @@
+/* Item detail (DetailFull.dc.html, DetailSetup.dc.html) and its sheets. */
+
+.topBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 4px) 8px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--tap);
+  padding: 0 8px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.edit {
+  height: var(--tap);
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.missing {
+  padding: 24px var(--gutter);
+  color: var(--color-text-muted);
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px var(--gutter) 16px;
+}
+
+.iconTileLg {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-input);
+  color: var(--color-icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.identityText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--text-title-lg);
+  line-height: 1.2;
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.category {
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+.inlineLink {
+  /* Visually a link, but a 44px-tall target via padding. */
+  margin: -12px 0;
+  padding: 12px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm);
+  text-decoration: underline;
+}
+
+.amountBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 var(--gutter) 18px;
+}
+
+.amountLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.amountValue {
+  font-size: var(--text-title-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.amountOf,
+.hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+.hint {
+  font-size: var(--text-caption);
+}
+
+.notice {
+  margin: 0 var(--gutter) 18px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-tint);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noticeTitle {
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary-strong);
+}
+
+.noticeText {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.noticeAction {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.spacer {
+  height: 8px;
+  background: var(--color-surface-muted);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fieldRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--row-detail);
+  padding: 0 var(--gutter);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-row);
+  background: var(--color-bg);
+  text-align: left;
+}
+
+.fieldLabel {
+  flex: 1;
+  color: var(--color-text-secondary);
+}
+
+.fieldValue {
+  font-weight: var(--weight-medium);
+  text-align: right;
+}
+
+.fieldMuted {
+  color: var(--color-text-muted);
+}
+
+.fieldAdd {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.fieldNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-text-disabled);
+}
+
+.leftovers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px var(--gutter) 0;
+}
+
+.sectionLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.leftoverCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.leftoverText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.leftoverName {
+  font-weight: var(--weight-medium);
+}
+
+.leftoverWhere {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.leftoverAmount {
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px var(--gutter) 32px;
+}
+
+/* Category picker */
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.categoryTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px 6px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-icon);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.categoryTile span {
+  color: var(--color-text);
+}
+
+.categoryTile[aria-checked='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+/* Open one: "Take 1 can from…" checkbox row */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  text-align: left;
+}
+
+.checkBox {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-text-disabled);
+  background: var(--color-bg);
+  color: var(--color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkBox[data-checked='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.checkText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkTitle {
+  font-weight: var(--weight-medium);
+}
+
+.checkNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
