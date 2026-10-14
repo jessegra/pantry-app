@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
@@ -74,6 +74,16 @@ describe('just shopped', () => {
     const left = await repo.db.listEntries.toArray();
     expect(left.map((e) => [e.name, e.checked])).toEqual([['Dish soap', false]]);
     expect((await repo.db.items.get('it-chicken'))!.amount).toBe(4);
+  });
+
+  it('a double-tap on Confirm logs the purchase once', async () => {
+    await start();
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmButton); // two raw clicks, no re-render in between
+    fireEvent.click(confirmButton);
+    await nextCard('Lemons');
+    expect((await repo.db.items.get('it-chicken'))!.amount).toBe(4); // 1 + 3, not 1 + 3 + 3
+    expect(screen.getByText('2 of 5')).toBeInTheDocument();
   });
 
   it('skipping an already-checked entry keeps it on the list, unchecked', async () => {

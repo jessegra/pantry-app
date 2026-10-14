@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInventory } from '../../data/hooks';
 import { repo } from '../../data/repo';
@@ -37,11 +37,17 @@ export function JustShoppedScreen() {
     });
   }, []);
 
+  // A ref, not just state: a fast double-tap lands before the re-render that disables
+  // the buttons, and must not log the same purchase twice.
+  const inFlight = useRef(false);
   const step = async (work: () => Promise<void>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       await work();
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };

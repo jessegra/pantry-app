@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
@@ -109,7 +109,7 @@ describe('shopping list', () => {
     sheet = screen.getByRole('dialog', { name: 'Dish soap' });
     await userEvent.click(within(sheet).getByRole('button', { name: 'Remove' }));
     await sheetClosed();
-    expect(screen.queryByText('Dish soap')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('Dish soap')).toBeNull()); // the list redraws after the sheet closes
   });
 
   it('an auto entry for a still-low item explains why it stays', async () => {

@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 // just shopped, confirm all (skip one) → inventory shows full bars, list empty except skipped.
 // Run entirely offline once the service worker has the app.
 test('core loop works offline', async ({ page, context }) => {
+  test.slow(); // a long journey: 3× the default budget, for slow CI machines
   await page.goto('./');
   await page.getByRole('button', { name: 'Load sample data' }).click();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
