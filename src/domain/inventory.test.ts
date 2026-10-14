@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildInventory, locationLabel, type InventoryLocation, type InventorySection } from './inventory';
+import {
+  buildInventory,
+  filterInventory,
+  locationLabel,
+  statusCounts,
+  type InventoryLocation,
+  type InventorySection,
+} from './inventory';
 import { seedGroups, seedItems, seedListEntries, seedLocations } from './seed';
 
 const names = (l: InventoryLocation) => l.rows.map((r) => r.item.name);
@@ -55,6 +62,41 @@ describe('buildInventory', () => {
   it('a deleted group leaves its locations at the top level', () => {
     const out = buildInventory([], seedLocations, seedItems, []);
     expect(out.every((s) => s.kind === 'location')).toBe(true);
+  });
+});
+
+describe('filterInventory', () => {
+  const sections = buildInventory(seedGroups, seedLocations, seedItems, seedListEntries);
+  const shown = (s: InventorySection[]) => flat(s).flatMap(names);
+
+  it('All with no query keeps everything, including empty locations', () => {
+    expect(filterInventory(sections, 'all', '')).toBe(sections);
+  });
+
+  it('Low shows low and out items only, dropping empty locations and groups', () => {
+    expect(shown(filterInventory(sections, 'low', ''))).toEqual(['Chicken thighs', 'Coffee beans']);
+    const eggsOut = buildInventory(
+      seedGroups,
+      seedLocations,
+      seedItems.map((i) => (i.id === 'it-eggs' ? { ...i, amount: 0 } : i)),
+      [],
+    );
+    expect(shown(filterInventory(eggsOut, 'out', ''))).toEqual(['Eggs']);
+    expect(filterInventory(eggsOut, 'out', '')).toHaveLength(1);
+  });
+
+  it('search matches names across locations, case-insensitive', () => {
+    expect(shown(filterInventory(sections, 'all', 'BEANS'))).toEqual([
+      'Black beans, opened',
+      'Black beans',
+      'Coffee beans',
+    ]);
+    expect(shown(filterInventory(sections, 'low', 'beans'))).toEqual(['Coffee beans']);
+    expect(filterInventory(sections, 'all', 'zzz')).toEqual([]);
+  });
+
+  it('counts low and out for the chips', () => {
+    expect(statusCounts(sections)).toEqual({ low: 2, out: 0 });
   });
 });
 

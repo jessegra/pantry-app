@@ -1,0 +1,60 @@
+/* Tap zone: full row height × full bar width. pan-y lets the list scroll vertically
+   while horizontal moves stay ours (drag). */
+.zone {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.zone[data-size='large'] {
+  height: 48px;
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: var(--bar-height);
+  border-radius: calc(var(--bar-height) / 2);
+  background: var(--color-bar-track);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.zone[data-size='large'] .track {
+  height: var(--bar-height-lg);
+  border-radius: calc(var(--bar-height-lg) / 2);
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-bar-ok);
+  transition: width var(--motion-fast);
+}
+
+.fill[data-status='low'] {
+  background: var(--color-bar-low);
+}
+
+.fill[data-status='out'] {
+  background: var(--color-bar-out);
+}
+
+/* 2px whole-unit tick, centred on the boundary, drawn over the fill. */
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-bar-tick);
+}

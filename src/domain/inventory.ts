@@ -14,6 +14,8 @@ export interface InventoryLocation {
   id: ID | null;
   name: string;
   rows: InventoryRow[];
+  /** All items here, before any filter (the header count). */
+  itemCount: number;
   lowCount: number;
 }
 
@@ -60,7 +62,7 @@ export function buildInventory(
 
   const toView = (id: ID | null, name: string): InventoryLocation => {
     const rows = orderRows(byLocation.get(id) ?? []);
-    return { id, name, rows, lowCount: rows.filter((r) => isLowOrOut(r.item)).length };
+    return { id, name, rows, itemCount: rows.length, lowCount: rows.filter((r) => isLowOrOut(r.item)).length };
   };
 
   const groupIds = new Set(groups.map((g) => g.id));
@@ -82,6 +84,43 @@ export function buildInventory(
 
   if (byLocation.has(null)) sections.push({ kind: 'location', location: toView(null, UNASSIGNED_NAME) });
   return sections;
+}
+
+export type StatusFilter = 'all' | 'low' | 'out';
+
+const passes = (row: InventoryRow, filter: StatusFilter) =>
+  filter === 'all' ||
+  (filter === 'out' ? row.status === 'out' : row.status === 'low' || row.status === 'out');
+
+/**
+ * Applies the search box and the All / Low / Out chips. With no query and "All",
+ * everything shows (including empty locations). Otherwise locations and groups
+ * with no matching rows are dropped. Search is case-insensitive, name contains.
+ */
+export function filterInventory(sections: InventorySection[], filter: StatusFilter, query: string): InventorySection[] {
+  const q = query.trim().toLocaleLowerCase();
+  if (filter === 'all' && !q) return sections;
+  const keep = (loc: InventoryLocation): InventoryLocation | null => {
+    const rows = loc.rows.filter((r) => passes(r, filter) && (!q || r.item.name.toLocaleLowerCase().includes(q)));
+    return rows.length ? { ...loc, rows } : null;
+  };
+  return sections.flatMap((s): InventorySection[] => {
+    if (s.kind === 'location') {
+      const loc = keep(s.location);
+      return loc ? [{ kind: 'location', location: loc }] : [];
+    }
+    const locations = s.locations.flatMap((l) => keep(l) ?? []);
+    return locations.length ? [{ ...s, locations }] : [];
+  });
+}
+
+/** Counts for the Low · n and Out · n chips. */
+export function statusCounts(sections: InventorySection[]): { low: number; out: number } {
+  const rows = sections.flatMap((s) => (s.kind === 'group' ? s.locations : [s.location])).flatMap((l) => l.rows);
+  return {
+    low: rows.filter((r) => r.status === 'low' || r.status === 'out').length,
+    out: rows.filter((r) => r.status === 'out').length,
+  };
 }
 
 /** "Pantry · Shelf 1" or "Refrigerator". */

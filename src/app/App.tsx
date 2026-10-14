@@ -1,9 +1,9 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+﻿import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { TabBar } from './TabBar';
 import { useInitialized, useShoppingList } from '../data/hooks';
 import { FirstRunScreen } from '../screens/FirstRunScreen';
 import styles from './App.module.css';
-import { InventoryScreen } from '../screens/InventoryScreen';
+import { InventoryScreen } from '../screens/inventory/InventoryScreen';
 import { ItemDetailScreen } from '../screens/ItemDetailScreen';
 import { QuickAddScreen } from '../screens/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/ShoppingListScreen';
