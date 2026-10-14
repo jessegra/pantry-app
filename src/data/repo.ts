@@ -13,7 +13,9 @@ import {
   type OpenOneInput,
   type TapDirection,
 } from '../domain/rules';
+import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
+import { houseOrder, tripOrder } from '../domain/trip';
 import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
 import type { CategoryKey, ID, Item, ListEntry, PackageSize } from '../domain/types';
 import { guessCategory } from '../ui/icons';
@@ -386,6 +388,30 @@ export class Repo {
       await this.touch(item.id);
       return this.reconcile(item.id);
     });
+  }
+
+  /** Just shopped → Skip: the entry stays on the list, unchecked (so Finish won't clear it). */
+  async skipEntry(entryId: ID): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.listEntries, async () => {
+      const e = await db.listEntries.get(entryId);
+      if (e?.checked) {
+        await db.listEntries.put({ ...e, checked: false, checkedAt: undefined, updatedAt: this.now() });
+      }
+    });
+  }
+
+  /** One-time snapshot of the walk, so the order doesn't shift while you're shopping. */
+  async tripPlan() {
+    const [entries, stores] = await Promise.all([this.db.listEntries.toArray(), this.db.stores.toArray()]);
+    return tripOrder(entries, stores);
+  }
+
+  /** "Continue through the house": snapshot of set-up items by location, minus ones just logged. */
+  async housePlan(exclude: Set<ID>) {
+    const { db } = this;
+    const [groups, locations, items] = await Promise.all([db.groups.toArray(), db.locations.toArray(), db.items.toArray()]);
+    return houseOrder(buildInventory(groups, locations, items, []), exclude);
   }
 
   /**

@@ -8,7 +8,7 @@ import { InventoryScreen } from '../screens/inventory/InventoryScreen';
 import { ItemDetailScreen } from '../screens/item/ItemDetailScreen';
 import { QuickAddScreen } from '../screens/add/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/list/ShoppingListScreen';
-import { JustShoppedScreen } from '../screens/JustShoppedScreen';
+import { JustShoppedScreen } from '../screens/shopped/JustShoppedScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 
 /** Top-level screens: content above the bottom tab bar. */

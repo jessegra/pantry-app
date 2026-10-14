@@ -164,6 +164,12 @@ describe('shopping list', () => {
     expect((await db.listEntries.toArray()).map((e) => e.name)).toEqual(['Dish soap']);
   });
 
+  it('skipping a checked entry unchecks it so Finish keeps it', async () => {
+    await repo.skipEntry('le-lemons');
+    await repo.finishTrip();
+    expect(await db.listEntries.get('le-lemons')).toMatchObject({ checked: false });
+  });
+
   it('an item still low after the trip is listed again', async () => {
     await repo.logPurchase('le-chicken', 0);
     await repo.finishTrip();
