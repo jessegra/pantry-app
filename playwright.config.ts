@@ -7,7 +7,9 @@ const base = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   testDir: './e2e',
+  reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
   use: {
+    trace: 'retain-on-failure',
     baseURL: `http://localhost:4173${base}`,
     ...devices['Pixel 7'],
     viewport: { width: 390, height: 844 },
