@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inventory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+a{color:#1D5BD6}a:hover{color:#1648AD}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #FFFFFF; color: #14181F; font-family: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; overflow: hidden">
+
+<div style="padding: 48px 16px 8px; display: flex; flex-direction: column; gap: 8px; background: #FFFFFF; border-bottom: 1px solid #E3E7ED">
+<label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 10px; background: #F1F4F8; border: 1px solid #E3E7ED">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A6472" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search pantry</span>
+<input type="search" placeholder="Search pantry" style="flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font-size: 16px; color: #14181F">
+</label>
+<div style="display: flex; gap: 8px">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+<button aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="flex: 1; overflow-y: auto">
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="5">
+<sc-if value="{{sec.hasGroup}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 28px; padding: 0 16px; background: #F6F8FB; border-bottom: 1px solid #E3E7ED; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #4A5462">
+<span>{{sec.groupName}}</span>
+<span style="font-weight: 500; letter-spacing: 0; text-transform: none; color: #8A5300">{{sec.lowText}}</span>
+</div>
+</sc-if>
+<sc-for list="{{sec.locs}}" as="loc" hint-placeholder-count="1">
+<sc-if value="{{loc.visible}}" hint-placeholder-val="{{true}}">
+<section>
+<button aria-expanded="{{loc.expanded}}" onClick="{{loc.toggle}}" style="{{loc.headStyle}}">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A6472" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{loc.chevStyle}}"><path d="M9 6l6 6-6 6"></path></svg>
+<span style="flex: 1; text-align: left; font-weight: 600; font-size: 15px">{{loc.name}}</span>
+<sc-if value="{{loc.hasLow}}" hint-placeholder-val="{{false}}">
+<span style="padding: 2px 8px; border-radius: 999px; background: #FDF1DC; color: #8A5300; font-size: 12px; font-weight: 600">{{loc.lowText}}</span>
+</sc-if>
+<span style="min-width: 20px; text-align: right; color: #5A6472; font-size: 13px; font-variant-numeric: tabular-nums">{{loc.count}}</span>
+</button>
+<sc-if value="{{loc.expanded}}" hint-placeholder-val="{{true}}">
+<sc-for list="{{loc.items}}" as="it" hint-placeholder-count="2">
+<sc-if value="{{it.hasPar}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 16px; border-bottom: 1px solid #EEF1F5">
+<span style="flex: none; width: 30px; height: 30px; border-radius: 8px; background: #F1F4F8; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B4656" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{it.icon}}"></path></svg></span>
+<a href="{{it.href}}" style="flex: none; width: 108px; color: #14181F; text-decoration: none; font-size: 15px; line-height: 1.2">{{it.name}}</a>
+<div style="flex: 1; position: relative; height: 44px; display: flex; align-items: center">
+<div style="position: relative; width: 100%; height: 14px; border-radius: 7px; background: #E4E9F0; overflow: hidden">
+<div style="{{it.fillStyle}}"></div>
+<div style="{{it.tickStyle}}"></div>
+</div>
+<div style="position: absolute; inset: 0; display: flex">
+<button aria-label="{{it.decLabel}}" onClick="{{it.dec}}" style="flex: 1; background: transparent; border: 0; padding: 0; cursor: pointer"></button>
+<button aria-label="{{it.incLabel}}" onClick="{{it.inc}}" style="flex: 1; background: transparent; border: 0; padding: 0; cursor: pointer"></button>
+</div>
+</div>
+<span style="flex: none; width: 16px; display: flex; align-items: center">
+<sc-if value="{{it.onList}}" hint-placeholder-val="{{false}}">
+<svg role="img" aria-label="On shopping list" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D5BD6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"></path><circle cx="9" cy="19.5" r="1.3"></circle><circle cx="17" cy="19.5" r="1.3"></circle></svg>
+</sc-if>
+</span>
+<span style="{{it.labelStyle}}">{{it.label}}</span>
+</div>
+</sc-if>
+<sc-if value="{{it.noPar}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 16px; border-bottom: 1px solid #EEF1F5">
+<span style="flex: none; width: 30px; height: 30px; border-radius: 8px; background: #F1F4F8; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B4656" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{it.icon}}"></path></svg></span>
+<a href="{{it.href}}" style="flex: none; width: 108px; color: #14181F; text-decoration: none; font-size: 15px">{{it.name}}</a>
+<span style="flex: 1; color: #5A6472; font-size: 13px">No amount tracked</span>
+<a href="DetailSetup.dc.html" style="display: flex; align-items: center; height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #1D5BD6; color: #1D5BD6; font-weight: 600; font-size: 14px; text-decoration: none">Set up</a>
+</div>
+</sc-if>
+</sc-for>
+<sc-if value="{{loc.empty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; padding: 0 16px 0 56px; border-bottom: 1px solid #EEF1F5; color: #5A6472; font-size: 14px">
+<span>Nothing stored here yet</span>
+<a href="QuickAdd.dc.html" style="display: flex; align-items: center; height: 44px; font-weight: 600; text-decoration: none">Add item</a>
+</div>
+</sc-if>
+</sc-if>
+</section>
+</sc-if>
+</sc-for>
+</sc-for>
+</div>
+
+<nav aria-label="Main" style="flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 8px 24px; border-top: 1px solid #E3E7ED; background: #FFFFFF">
+<a href="Main.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 52px; color: #1D5BD6; text-decoration: none; font-size: 12px; font-weight: 600">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v5H4zM4 14h16v5H4zM8 7.5h3M8 16.5h3"></path></svg>
+Inventory</a>
+<a href="ShoppingList.dc.html" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 52px; color: #4A5462; text-decoration: none; font-size: 12px; font-weight: 500">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"></path><circle cx="9" cy="19.5" r="1.3"></circle><circle cx="17" cy="19.5" r="1.3"></circle></svg>
+<span style="position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #1D5BD6; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{listCount}}</span>
+List</a>
+<a href="QuickAdd.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 52px; color: #4A5462; text-decoration: none; font-size: 12px; font-weight: 500">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v8M8 12h8"></path></svg>
+Add</a>
+<a href="SettingsLocations.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 52px; color: #4A5462; text-decoration: none; font-size: 12px; font-weight: 500">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg>
+Settings</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var ICONS = {
+  can: 'M6 5c0-1.1 2.7-2 6-2s6 .9 6 2v14c0 1.1-2.7 2-6 2s-6-.9-6-2V5zM6 5c0 1.1 2.7 2 6 2s6-.9 6-2M6 10.5h12M6 14.5h12',
+  carton: 'M8 3h8v3l3 4v11H5V10l3-4V3zM5 10h14M8 6h8',
+  egg: 'M12 3c3.5 0 6.5 5.5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.5 8.5 3 12 3z',
+  butter: 'M3 10l4-3h14v8l-4 3H3v-8zM3 10h14v8M17 10l4-3',
+  bag: 'M6 8h12l1 13H5L6 8zM8 8V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V8M9 13h6',
+  bottle: 'M10 2.5h4v3.5l2 3v11.5a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9l2-3V2.5zM8 13h8',
+  snow: 'M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 4.5L12 6l2.5-1.5M9.5 19.5L12 18l2.5 1.5',
+  meat: 'M14 3.5a6 6 0 0 1 5.5 8.5c-1.2 2.6-4.4 3.3-6.5 2.5L9 18.5a2 2 0 1 1-2.8 1.3 2 2 0 1 1-1-3.3l4-4c-.7-2.2-.2-5.2 2.2-7.4a6 6 0 0 1 2.6-1.6z',
+  bean: 'M12 3c4 0 7 4 7 9s-3 9-7 9-7-4-7-9 3-9 7-9zM12 3.5c-2 2.8-2 5.6 0 8.5s2 5.7 0 8.5',
+  grain: 'M3 11h18a9 9 0 0 1-18 0zM8 8.5c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5'
+};
+var LOCS = [
+  { id: 'fridge', name: 'Refrigerator' },
+  { id: 'drawer', name: 'Refrigerator Drawer' },
+  { id: 'freeze', name: 'Deep Freeze' },
+  { group: 'Pantry', locs: [ { id: 'shelf1', name: 'Shelf 1' }, { id: 'shelf2', name: 'Shelf 2' }, { id: 'floor', name: 'Floor bin' } ] },
+  { id: 'cab', name: 'Kitchen Cabinet Left' }
+];
+var START = [
+  { id: 'milk', name: 'Milk', loc: 'fridge', amt: 1, par: 2, unit: 'gal', icon: 'carton' },
+  { id: 'eggs', name: 'Eggs', loc: 'fridge', amt: 9, par: 12, unit: 'each', icon: 'egg' },
+  { id: 'bbo', name: 'Black beans, opened', loc: 'fridge', amt: 4, par: 8, unit: 'oz', icon: 'can', leftover: true },
+  { id: 'butter', name: 'Butter', loc: 'drawer', amt: 2, par: 4, unit: 'stick', plural: 'sticks', icon: 'butter' },
+  { id: 'peas', name: 'Frozen peas', loc: 'freeze', amt: 2, par: 3, unit: 'bag', plural: 'bags', icon: 'snow' },
+  { id: 'chicken', name: 'Chicken thighs', loc: 'freeze', amt: 1, par: 4, unit: 'lb', icon: 'meat' },
+  { id: 'bb', name: 'Black beans', loc: 'shelf1', amt: 3, par: 8, unit: 'can', plural: 'cans', icon: 'can', href: 'DetailFull.dc.html' },
+  { id: 'rice', name: 'Rice', loc: 'shelf1', par: null, icon: 'grain', href: 'DetailSetup.dc.html' },
+  { id: 'coffee', name: 'Coffee beans', loc: 'shelf2', amt: 0.5, par: 2, unit: 'bag', plural: 'bags', icon: 'bean' },
+  { id: 'flour', name: 'Flour', loc: 'cab', amt: 0.4, par: 1, unit: 'bag', pct: true, icon: 'bag' },
+  { id: 'oil', name: 'Olive oil', loc: 'cab', amt: 0.7, par: 1, unit: 'bottle', pct: true, icon: 'bottle' }
+];
+var MANUAL_ON_LIST = 2;
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var amts = {};
+    START.forEach(function (it) { amts[it.id] = it.amt; });
+    this.state = { amts: amts, filter: 'all', collapsed: {} };
+  }
+  fmt(it, a) {
+    if (it.pct) return Math.round(a * 100) + '%';
+    var whole = Math.floor(a + 1e-9), frac = a - whole, s;
+    var fr = Math.abs(frac - 0.5) < 0.01 ? '½' : Math.abs(frac - 0.25) < 0.01 ? '¼' : Math.abs(frac - 0.75) < 0.01 ? '¾' : '';
+    if (frac < 0.01) s = String(whole); else if (fr) s = (whole ? whole : '') + fr; else s = a.toFixed(1);
+    var u = (a > 0 && a <= 1) ? it.unit : (it.plural || it.unit);
+    return s + ' ' + u;
+  }
+  setAmt(id, v) {
+    var amts = Object.assign({}, this.state.amts);
+    amts[id] = Math.max(0, Math.round(v * 100) / 100);
+    this.setState({ amts: amts });
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var items = START.map(function (it) {
+      var hasPar = it.par != null;
+      var a = st.amts[it.id];
+      var status = !hasPar ? 'none' : a <= 0 ? 'out' : a <= it.par * 0.25 + 1e-9 ? 'low' : 'ok';
+      var color = status === 'out' ? '#CF3B2E' : status === 'low' ? '#E39B1B' : '#2F68D8';
+      var labelColor = status === 'out' ? '#B42318' : status === 'low' ? '#8A5300' : '#14181F';
+      var pctFill = hasPar ? Math.min(a / it.par, 1) * 100 : 0;
+      var tick = '';
+      if (hasPar && !it.pct && it.par > 1) {
+        var w = (100 / it.par).toFixed(4);
+        tick = 'background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(' + w + '% - 2px), rgba(255,255,255,0.9) calc(' + w + '% - 2px), rgba(255,255,255,0.9) ' + w + '%);';
+      }
+      var step = it.pct ? 0.1 : 1;
+      var top = it.pct ? it.par : Infinity;
+      return {
+        id: it.id, loc: it.loc, name: it.name, icon: ICONS[it.icon], href: it.href || 'DetailFull.dc.html',
+        hasPar: hasPar, noPar: !hasPar, status: status,
+        onList: (status === 'low' || status === 'out') && !it.leftover,
+        fillStyle: 'position: absolute; left: 0; top: 0; bottom: 0; width: ' + pctFill + '%; background: ' + color + '; transition: width 120ms ease;',
+        tickStyle: 'position: absolute; inset: 0; pointer-events: none; ' + tick,
+        label: hasPar ? self.fmt(it, a) : '',
+        labelStyle: 'flex: none; width: 60px; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; font-weight: ' + (status === 'ok' ? 500 : 600) + '; color: ' + labelColor + ';',
+        decLabel: 'Use one ' + (it.unit || '') + ' of ' + it.name,
+        incLabel: 'Add one ' + (it.unit || '') + ' of ' + it.name,
+        dec: function () { self.setAmt(it.id, a - step); },
+        inc: function () { self.setAmt(it.id, Math.min(top, a + step)); }
+      };
+    });
+    var f = st.filter;
+    var passes = function (it) { return f === 'all' ? true : f === 'low' ? (it.status === 'low' || it.status === 'out') : it.status === 'out'; };
+    var lowCount = items.filter(function (i) { return i.status === 'low' || i.status === 'out'; }).length;
+    var outCount = items.filter(function (i) { return i.status === 'out'; }).length;
+    var buildLoc = function (l, indent) {
+      var all = items.filter(function (i) { return i.loc === l.id; });
+      var shown = all.filter(passes);
+      var low = all.filter(function (i) { return i.status === 'low' || i.status === 'out'; }).length;
+      var expanded = !st.collapsed[l.id];
+      return {
+        name: l.name, items: shown, count: all.length, hasLow: low > 0, lowText: low + ' low', low: low,
+        expanded: expanded, empty: all.length === 0 && f === 'all',
+        visible: f === 'all' || shown.length > 0,
+        toggle: function () { var c = Object.assign({}, st.collapsed); c[l.id] = !c[l.id]; self.setState({ collapsed: c }); },
+        chevStyle: 'flex: none; transition: transform 120ms ease; transform: rotate(' + (expanded ? 90 : 0) + 'deg);',
+        headStyle: 'width: 100%; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 ' + (indent ? 24 : 12) + 'px; background: #FFFFFF; border: 0; border-bottom: 1px solid #E3E7ED; cursor: pointer;'
+      };
+    };
+    var sections = LOCS.map(function (s) {
+      if (s.group) {
+        var locs = s.locs.map(function (l) { return buildLoc(l, true); });
+        var gl = locs.reduce(function (n, l) { return n + l.low; }, 0);
+        return { hasGroup: true, groupName: s.group, lowText: gl ? gl + ' low' : '', locs: locs };
+      }
+      return { hasGroup: false, locs: [buildLoc(s, false)] };
+    });
+    var chipDefs = [ { k: 'all', label: 'All' }, { k: 'low', label: 'Low · ' + lowCount }, { k: 'out', label: 'Out · ' + outCount } ];
+    var chips = chipDefs.map(function (c) {
+      var on = f === c.k;
+      return {
+        label: c.label, pressed: on,
+        pick: function () { self.setState({ filter: c.k }); },
+        style: 'height: 44px; padding: 0 16px; border-radius: 22px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid ' + (on ? '#1D5BD6' : '#D5DBE3') + '; background: ' + (on ? '#1D5BD6' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#14181F') + ';'
+      };
+    });
+    var listCount = items.filter(function (i) { return i.onList; }).length + MANUAL_ON_LIST;
+    return { sections: sections, chips: chips, listCount: listCount };
+  }
+}
+</script>
+</body>
+</html>

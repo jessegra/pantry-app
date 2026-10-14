@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Just shopped</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+a{color:#1D5BD6}a:hover{color:#1648AD}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #FFFFFF; color: #14181F; font-family: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; overflow: hidden">
+
+<div style="flex: none; display: flex; flex-direction: column; gap: 10px; padding: 48px 16px 14px; border-bottom: 1px solid #E3E7ED">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<a href="ShoppingList.dc.html" style="display: flex; align-items: center; height: 44px; margin-left: -4px; padding: 0 4px; font-weight: 500; text-decoration: none">Close</a>
+<span style="font-weight: 600">Just shopped</span>
+<span style="width: 52px; text-align: right; color: #4A5462; font-size: 14px; font-variant-numeric: tabular-nums">{{progressText}}</span>
+</div>
+<div role="progressbar" aria-label="Items logged" aria-valuemin="0" aria-valuemax="{{total}}" aria-valuenow="{{done}}" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{segments}}" as="g" hint-placeholder-count="5">
+<span style="{{g.style}}"></span>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{inList}}" hint-placeholder-val="{{true}}">
+<div style="flex: 1; display: flex; flex-direction: column; padding: 32px 16px 32px; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #4A5462">{{cur.store}}</span>
+<h1 style="margin: 0; font-size: 36px; line-height: 1.1; font-weight: 600; text-wrap: balance">{{cur.name}}</h1>
+<span style="color: #4A5462">List asked for {{cur.askedText}}</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span id="qty-label" style="font-size: 13px; font-weight: 600; color: #4A5462">How many did you buy?</span>
+<div role="group" aria-labelledby="qty-label" style="display: flex; align-items: stretch; height: 72px; border: 1px solid #C9D1DC; border-radius: 14px; overflow: hidden">
+<button aria-label="One fewer" onClick="{{less}}" style="width: 80px; border: 0; border-right: 1px solid #E3E7ED; background: #F6F8FB; color: #1D5BD6; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"></path></svg></button>
+<span style="flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 8px; padding-top: 14px"><span style="font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums">{{qty}}</span><span style="color: #4A5462; font-size: 17px">{{cur.unitText}}</span></span>
+<button aria-label="One more" onClick="{{more}}" style="width: 80px; border: 0; border-left: 1px solid #E3E7ED; background: #F6F8FB; color: #1D5BD6; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12M12 6v12"></path></svg></button>
+</div>
+<span style="color: #5A6472; font-size: 13px">{{cur.after}}</span>
+</div>
+
+<div style="flex: 1"></div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px">
+<button onClick="{{skip}}" style="height: 56px; border-radius: 12px; border: 1px solid #C9D1DC; background: #FFFFFF; color: #14181F; font-weight: 600; font-size: 16px; cursor: pointer">Skip</button>
+<button onClick="{{confirm}}" style="height: 56px; border-radius: 12px; border: 0; background: #1D5BD6; color: #FFFFFF; font-weight: 600; font-size: 16px; cursor: pointer">Confirm</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{atEnd}}" hint-placeholder-val="{{false}}">
+<div style="flex: 1; display: flex; flex-direction: column; padding: 40px 16px 32px; gap: 16px">
+<h1 style="margin: 0; font-size: 28px; line-height: 1.2; font-weight: 600">That's the whole list.</h1>
+<span style="color: #4A5462; line-height: 1.45">Bought anything that wasn't on it? Walk through the rest of the house and log it the same way.</span>
+<div style="flex: 1"></div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="ShoppedDone.dc.html" style="display: flex; align-items: center; justify-content: center; height: 56px; border-radius: 12px; background: #1D5BD6; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none">Finish</a>
+<button onClick="{{restart}}" style="height: 56px; border-radius: 12px; border: 1px solid #1D5BD6; background: #FFFFFF; color: #1D5BD6; font-weight: 600; font-size: 16px; cursor: pointer">Continue through the house</button>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var LIST = [
+  { name: 'Chicken thighs', store: 'Costco', asked: 3, unit: 'lb', plural: 'lb', have: 1 },
+  { name: 'Lemons', store: 'Fred Meyer', asked: 4, unit: '', plural: '' },
+  { name: 'Coffee beans', store: "Trader Joe's", asked: 2, unit: 'bag', plural: 'bags', have: 0.5 },
+  { name: 'Tortillas', store: "Trader Joe's", asked: 1, unit: 'pack', plural: 'packs' },
+  { name: 'Dish soap', store: 'Unassigned', asked: 1, unit: '', plural: '' }
+];
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { idx: 0, qty: LIST[0].asked, results: [] }; }
+  go(idx, result) {
+    var results = this.state.results.slice(); results[this.state.idx] = result;
+    this.setState({ idx: idx, qty: idx < LIST.length ? LIST[idx].asked : 0, results: results });
+  }
+  renderVals() {
+    var self = this, st = this.state, n = LIST.length, i = st.idx;
+    var inList = i < n, cur = inList ? LIST[i] : LIST[n - 1];
+    var u = function (it, q) { return q === 1 ? it.unit : it.plural; };
+    var after = cur.have != null ? 'On hand after: ' + (cur.have + st.qty) + ' ' + u(cur, cur.have + st.qty) : 'Not tracked in inventory';
+    return {
+      inList: inList, atEnd: !inList, total: n, done: Math.min(i, n),
+      progressText: inList ? (i + 1) + ' of ' + n : n + ' of ' + n,
+      segments: LIST.map(function (_, k) {
+        var r = st.results[k];
+        var c = k < i ? (r === 'skip' ? '#AEB7C4' : '#1D5BD6') : k === i ? '#8DB0EE' : '#E4E9F0';
+        return { style: 'height: 6px; border-radius: 3px; background: ' + c + ';' };
+      }),
+      cur: {
+        name: cur.name, store: cur.store,
+        askedText: (cur.asked + ' ' + u(cur, cur.asked)).trim(),
+        unitText: u(cur, st.qty), after: after
+      },
+      qty: st.qty,
+      less: function () { self.setState({ qty: Math.max(0, st.qty - 1) }); },
+      more: function () { self.setState({ qty: st.qty + 1 }); },
+      skip: function () { self.go(i + 1, 'skip'); },
+      confirm: function () { self.go(i + 1, 'ok'); },
+      restart: function () { self.setState({ idx: 0, qty: LIST[0].asked, results: [] }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
