@@ -1,5 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { TabBar } from './TabBar';
+import { useInitialized, useShoppingList } from '../data/hooks';
+import { FirstRunScreen } from '../screens/FirstRunScreen';
 import styles from './App.module.css';
 import { InventoryScreen } from '../screens/InventoryScreen';
 import { ItemDetailScreen } from '../screens/ItemDetailScreen';
@@ -10,8 +12,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 
 /** Top-level screens: content above the bottom tab bar. */
 function TabLayout() {
-  // TODO(M2): read the unchecked entry count from useShoppingList().
-  const listCount = 0;
+  const listCount = useShoppingList()?.remaining ?? 0;
   return (
     <div className={styles.frame}>
       <div className={styles.content}>
@@ -34,6 +35,9 @@ function StackLayout() {
 }
 
 export function App() {
+  const initialized = useInitialized();
+  if (initialized === undefined) return null; // first IndexedDB read: a few ms
+  if (!initialized) return <FirstRunScreen />;
   return (
     <Routes>
       <Route element={<TabLayout />}>

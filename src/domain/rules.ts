@@ -151,7 +151,7 @@ export function shouldAutoList(item: Item): boolean {
 
 export type AutoListAction =
   | { type: 'none' }
-  | { type: 'add'; entry: Omit<ListEntry, 'id' | 'createdAt'>; promptForStore: boolean }
+  | { type: 'add'; entry: Omit<ListEntry, 'id' | 'createdAt' | 'updatedAt'>; promptForStore: boolean }
   | { type: 'update'; entryId: ID; quantity: number }
   | { type: 'remove'; entryId: ID };
 

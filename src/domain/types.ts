@@ -72,6 +72,7 @@ export interface LocationGroup {
   /** Display header only, e.g. "Pantry". */
   name: string;
   sortOrder: number;
+  updatedAt: Timestamp;
 }
 
 export interface Location {
@@ -84,6 +85,7 @@ export interface Location {
    * or within the group when groupId is set.
    */
   sortOrder: number;
+  updatedAt: Timestamp;
 }
 
 export interface Store {
@@ -93,6 +95,7 @@ export interface Store {
   sortOrder: number;
   /** Reserved for a future Instacart hand-off. No UI yet. */
   onInstacart?: boolean;
+  updatedAt: Timestamp;
 }
 
 export type ListEntrySource = 'auto' | 'manual';
@@ -112,12 +115,14 @@ export interface ListEntry {
   checked: boolean;
   checkedAt?: Timestamp;
   createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface Staple {
   id: ID;
   /** Assumed always on hand. Never counts against a recipe. */
   name: string;
+  updatedAt: Timestamp;
 }
 
 export type ItemStatus = 'untracked' | 'ok' | 'low' | 'out';
