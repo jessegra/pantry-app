@@ -9,7 +9,7 @@ import { ItemDetailScreen } from '../screens/item/ItemDetailScreen';
 import { QuickAddScreen } from '../screens/add/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/list/ShoppingListScreen';
 import { JustShoppedScreen } from '../screens/shopped/JustShoppedScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { SettingsScreen } from '../screens/settings/SettingsScreen';
 
 /** Top-level screens: content above the bottom tab bar. */
 function TabLayout() {

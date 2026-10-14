@@ -17,7 +17,18 @@ import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
 import { houseOrder, tripOrder } from '../domain/trip';
 import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
-import type { CategoryKey, ID, Item, ListEntry, PackageSize } from '../domain/types';
+import type {
+  CategoryKey,
+  ID,
+  Item,
+  ListEntry,
+  Location,
+  LocationGroup,
+  PackageSize,
+  Staple,
+  Store,
+  Timestamp,
+} from '../domain/types';
 import { guessCategory } from '../ui/icons';
 import { PantryDB, SCHEMA_VERSION } from './db';
 
@@ -125,6 +136,42 @@ export class Repo {
       { key: 'initialized', value: true },
       { key: 'schemaVersion', value: SCHEMA_VERSION },
     ]);
+  }
+
+  // ---------- Backup (SPEC §5: until sync exists) ----------
+
+  /** Everything except the local-only activity log. */
+  async exportData(): Promise<Backup> {
+    const { db } = this;
+    return db.transaction('r', [db.items, db.locations, db.groups, db.stores, db.listEntries, db.staples], async () => ({
+      app: 'pantry' as const,
+      schemaVersion: SCHEMA_VERSION,
+      exportedAt: this.now(),
+      tables: {
+        items: await db.items.toArray(),
+        locations: await db.locations.toArray(),
+        groups: await db.groups.toArray(),
+        stores: await db.stores.toArray(),
+        listEntries: await db.listEntries.toArray(),
+        staples: await db.staples.toArray(),
+      },
+    }));
+  }
+
+  /** Replaces everything with a validated backup, in one transaction. */
+  async importData(backup: Backup): Promise<void> {
+    const { db } = this;
+    const { tables } = validateBackup(backup);
+    await db.transaction('rw', db.tables, async () => {
+      await Promise.all(db.tables.map((t) => t.clear()));
+      await db.items.bulkAdd(tables.items);
+      await db.locations.bulkAdd(tables.locations);
+      await db.groups.bulkAdd(tables.groups);
+      await db.stores.bulkAdd(tables.stores);
+      await db.listEntries.bulkAdd(tables.listEntries);
+      await db.staples.bulkAdd(tables.staples);
+      await this.markInitialized();
+    });
   }
 
   // ---------- Auto list entries ----------
@@ -584,6 +631,41 @@ export class Repo {
       return { affectedItems, movedEntries };
     });
   }
+}
+
+// ---------- Backup ----------
+
+export interface Backup {
+  app: 'pantry';
+  schemaVersion: number;
+  exportedAt: Timestamp;
+  tables: {
+    items: Item[];
+    locations: Location[];
+    groups: LocationGroup[];
+    stores: Store[];
+    listEntries: ListEntry[];
+    staples: Staple[];
+  };
+}
+
+const BACKUP_TABLES = ['items', 'locations', 'groups', 'stores', 'listEntries', 'staples'] as const;
+
+export class BackupError extends Error {}
+
+/** Checks a parsed file looks like one of our backups. Throws BackupError with a readable reason. */
+export function validateBackup(data: unknown): Backup {
+  const d = data as Partial<Backup> | null;
+  if (!d || typeof d !== 'object' || d.app !== 'pantry') throw new BackupError('This isn’t a Pantry backup file.');
+  if (typeof d.schemaVersion !== 'number' || d.schemaVersion > SCHEMA_VERSION) {
+    throw new BackupError('This backup is from a newer version of Pantry. Update the app first.');
+  }
+  for (const t of BACKUP_TABLES) {
+    if (!Array.isArray(d.tables?.[t])) throw new BackupError(`The backup is missing its ${t}.`);
+  }
+  const ok = (rows: unknown[]) => rows.every((r) => r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string');
+  if (!BACKUP_TABLES.every((t) => ok(d.tables![t]))) throw new BackupError('The backup looks damaged.');
+  return d as Backup;
 }
 
 /** App-wide instance. Tests construct their own `new Repo(new PantryDB(name))`. */

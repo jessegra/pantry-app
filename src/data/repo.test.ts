@@ -218,6 +218,31 @@ describe('locations and groups', () => {
   });
 });
 
+describe('backup', () => {
+  it('round-trips everything through JSON into an empty database', async () => {
+    await repo.tap('it-blackbeans', -1);
+    const json = JSON.stringify(await repo.exportData());
+    const other = new Repo(new PantryDB(`test-${crypto.randomUUID()}`));
+    expect(await other.isInitialized()).toBe(false);
+    await other.importData(JSON.parse(json));
+    expect(await other.isInitialized()).toBe(true);
+    expect(await other.db.items.get('it-blackbeans')).toMatchObject({ amount: 2 });
+    expect(await other.db.listEntries.count()).toBe(6);
+    expect(await other.db.locations.count()).toBe(7);
+    expect(await other.db.staples.count()).toBe(7);
+  });
+
+  it('rejects files that aren’t backups, without touching data', async () => {
+    await expect(repo.importData({ hello: 1 } as never)).rejects.toThrow('isn’t a Pantry backup');
+    const backup = await repo.exportData();
+    await expect(repo.importData({ ...backup, schemaVersion: 99 })).rejects.toThrow('newer version');
+    await expect(
+      repo.importData({ ...backup, tables: { ...backup.tables, items: [{ name: 'no id' }] } } as never),
+    ).rejects.toThrow('damaged');
+    expect(await db.items.count()).toBe(11);
+  });
+});
+
 describe('stores', () => {
   it('deleting a store clears it from items and moves its entries to Unassigned', async () => {
     expect(await repo.deleteStore('st-costco')).toEqual({ affectedItems: 3, movedEntries: 1 });

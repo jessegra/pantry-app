@@ -57,6 +57,13 @@ a.neutral:hover {
   color: var(--color-text);
 }
 
+/* Confirming a delete. White on --color-text-out is 6.3:1. */
+.danger {
+  border: 0;
+  background: var(--color-text-out);
+  color: var(--color-on-primary);
+}
+
 .text {
   border: 0;
   background: transparent;

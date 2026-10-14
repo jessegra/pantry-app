@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 import styles from './Button.module.css';
 
-type Variant = 'primary' | 'secondary' | 'neutral' | 'text';
+type Variant = 'primary' | 'secondary' | 'neutral' | 'text' | 'danger';
 type Size = 44 | 48 | 56;
 
 const cls = (variant: Variant, size: Size, className?: string) =>

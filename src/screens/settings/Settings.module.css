@@ -1,0 +1,254 @@
+/* Settings (SettingsLocations.dc.html, SettingsStores.dc.html). */
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-input);
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: 9px;
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.segment[aria-current='page'] {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-raised);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowWrap {
+  position: relative;
+}
+
+.row,
+.groupRow,
+.fixedRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--row-detail);
+  padding: 0 4px;
+  border-bottom: 1px solid var(--color-border-row);
+  background: var(--color-bg);
+}
+
+.row[data-tall='true'] {
+  min-height: var(--row-list);
+}
+
+.row[data-in-group='true'] {
+  padding-left: 20px;
+}
+
+.groupRow {
+  min-height: var(--tap);
+  background: var(--color-surface-muted);
+  border-bottom-color: var(--color-border);
+}
+
+.row[data-lifted='true'],
+.groupRow[data-lifted='true'] {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 6px 16px rgba(20, 24, 31, 0.18);
+  opacity: 0.95;
+}
+
+.dropLine {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.list > .dropLine {
+  position: relative;
+  display: block;
+}
+
+.fixedRow {
+  padding: 0 var(--gutter) 0 48px;
+  color: var(--color-text-muted);
+}
+
+.fixedName {
+  flex: 1;
+}
+
+.handle {
+  flex: none;
+  width: 40px;
+  height: var(--tap);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-disabled);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.groupName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-primary);
+  font-size: var(--text-input);
+}
+
+.stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack .name {
+  flex: none;
+  min-height: 0;
+  padding-top: 8px;
+}
+
+.stack[data-pad='true'] {
+  padding-left: 12px;
+}
+
+.meta,
+.metaLine {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.metaLine {
+  padding-bottom: 8px;
+}
+
+.delete {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addButtons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: var(--gutter);
+}
+
+.addOne {
+  display: flex;
+  flex-direction: column;
+  padding: var(--gutter);
+}
+
+.footnote {
+  padding: 0 var(--gutter) 24px;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.empty {
+  padding: 16px var(--gutter);
+  color: var(--color-text-muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  padding-top: 16px;
+}
+
+.sectionLabel {
+  padding: 0 var(--gutter) 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.section .row {
+  padding-right: var(--gutter);
+}
+
+.linkName {
+  padding-top: 8px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.ok,
+.error {
+  margin: 0 var(--gutter) 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-body-sm);
+}
+
+.ok {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-strong);
+}
+
+.error {
+  background: var(--color-bg-low);
+  color: var(--color-text-low);
+}
