@@ -132,6 +132,21 @@ describe('shopping list', () => {
     expect(await db.listEntries.get(id)).toMatchObject({ name: 'Rice', quantity: 1, source: 'manual', storeId: null });
   });
 
+  it('picking a store for an Unassigned entry also sets the item’s preferred store', async () => {
+    await repo.updateItem('it-chicken', { preferredStoreId: undefined });
+    await repo.setEntryStore('le-chicken', 'st-tj');
+    expect((await db.listEntries.get('le-chicken'))!.storeId).toBe('st-tj');
+    expect((await item('it-chicken')).preferredStoreId).toBe('st-tj');
+    await repo.setEntryStore('le-chicken', 'st-costco'); // already has one: unchanged
+    expect((await item('it-chicken')).preferredStoreId).toBe('st-tj');
+  });
+
+  it('removes manual entries, but an auto entry for a still-low item stays', async () => {
+    expect(await repo.removeListEntry('le-soap')).toEqual({ removed: true });
+    expect(await repo.removeListEntry('le-chicken')).toEqual({ removed: false });
+    expect(await db.listEntries.get('le-chicken')).toBeDefined();
+  });
+
   it('moves an entry to the other store and back', async () => {
     await repo.moveEntryToAlternate('le-chicken');
     expect((await db.listEntries.get('le-chicken'))!.storeId).toBe('st-fredmeyer');

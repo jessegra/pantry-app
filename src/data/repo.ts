@@ -9,6 +9,7 @@ import {
   openOne as buildLeftover,
   reconcileAutoEntry,
   restockQuantity,
+  shouldAutoList,
   type OpenOneInput,
   type TapDirection,
 } from '../domain/rules';
@@ -331,6 +332,40 @@ export class Repo {
       const item = e.itemId ? await db.items.get(e.itemId) : undefined;
       const to = alternateStore(e, item);
       if (to !== undefined) await db.listEntries.update(entryId, { storeId: to, updatedAt: this.now() });
+    });
+  }
+
+  /**
+   * Put an entry under a store (or Unassigned). If the linked item has no preferred
+   * store yet, this one becomes it: same answer as the nag.
+   */
+  async setEntryStore(entryId: ID, storeId: ID | null): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.items, db.listEntries, async () => {
+      const e = await db.listEntries.get(entryId);
+      if (!e) return;
+      const t = this.now();
+      await db.listEntries.update(entryId, { storeId, updatedAt: t });
+      const item = e.itemId ? await db.items.get(e.itemId) : undefined;
+      if (item && storeId && !item.preferredStoreId) {
+        await db.items.update(item.id, { preferredStoreId: storeId, updatedAt: t });
+      }
+    });
+  }
+
+  /**
+   * Removes an entry. If it was an auto entry for an item that's still low, it
+   * would come straight back, so it stays: the caller should say why.
+   */
+  async removeListEntry(entryId: ID): Promise<{ removed: boolean }> {
+    const { db } = this;
+    return db.transaction('rw', db.items, db.listEntries, async () => {
+      const e = await db.listEntries.get(entryId);
+      if (!e) return { removed: false };
+      const item = e.itemId ? await db.items.get(e.itemId) : undefined;
+      if (e.source === 'auto' && !e.checked && item && shouldAutoList(item)) return { removed: false };
+      await db.listEntries.delete(entryId);
+      return { removed: true };
     });
   }
 

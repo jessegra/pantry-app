@@ -1,0 +1,222 @@
+/* Shopping list (ShoppingList.dc.html). */
+
+.top {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 16px) var(--gutter) 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg);
+  font-size: var(--text-input);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion {
+  height: var(--tap);
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-strong);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.storeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 var(--gutter);
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.storeName {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.storeCount {
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--row-list);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--color-border-row);
+  background: var(--color-bg);
+}
+
+.row[data-auto='true'] {
+  background: var(--color-primary-wash);
+}
+
+.check {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin-left: -10px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.box {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-text-secondary);
+  background: var(--color-bg);
+  color: var(--color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row[data-checked='true'] .box {
+  border-color: var(--color-text-disabled);
+  background: var(--color-text-disabled);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.name {
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.row[data-checked='true'] .name {
+  color: var(--color-text-disabled);
+  text-decoration: line-through;
+}
+
+.autoLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--color-primary-hover);
+}
+
+.qty {
+  flex: none;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.row[data-checked='true'] .qty {
+  color: var(--color-text-disabled);
+}
+
+.move {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin-right: -8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moveSpacer {
+  flex: none;
+  width: 36px;
+}
+
+.empty {
+  padding: 32px var(--gutter);
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px var(--gutter) 24px;
+}
+
+.exportNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  text-align: center;
+}
+
+.blocked {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-low);
+  color: var(--color-text-low);
+  font-size: var(--text-body-sm);
+  line-height: 1.4;
+}
+
+.itemLink {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
