@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
 import { resetNagSession } from '../../app/nag';
 import { repo } from '../../data/repo';
+import { sheetClosed } from '../../test/helpers';
 
 beforeEach(async () => {
   localStorage.clear();
@@ -62,7 +63,7 @@ describe('quick add', () => {
       await userEvent.type(box, `${name}{Enter}`);
       const sheet = await screen.findByRole('dialog', { name: 'New item' });
       await userEvent.click(within(sheet).getByRole('button', { name: 'Add another' }));
-      expect(screen.queryByRole('dialog')).toBeNull();
+      await sheetClosed();
       expect(box).toHaveValue('');
       expect(box).toHaveFocus();
     }

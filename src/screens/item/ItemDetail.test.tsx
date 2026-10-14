@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
 import { resetNagSession } from '../../app/nag';
 import { repo } from '../../data/repo';
+import { sheetClosed } from '../../test/helpers';
 
 beforeEach(async () => {
   localStorage.clear();
@@ -60,6 +61,7 @@ describe('item detail', () => {
     await userEvent.click(within(dialog()).getByRole('button', { name: 'More par (a full stock)' }));
     await userEvent.click(within(dialog()).getByRole('button', { name: 'More par (a full stock)' }));
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Save' }));
+    await sheetClosed();
     expect(await screen.findByText('of 2 bags')).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Rice' })).toHaveAttribute('aria-valuetext', '2 bags of 2'); // starts full, so not listed yet
     expect(await repo.db.listEntries.where('itemId').equals('it-rice').count()).toBe(0);
@@ -72,8 +74,8 @@ describe('item detail', () => {
     await userEvent.clear(par);
     await userEvent.type(par, '10');
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Save' }));
+    await sheetClosed();
     expect(await screen.findByText('of 10 cans')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('changing the category confirms it', async () => {
@@ -81,6 +83,7 @@ describe('item detail', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Change' }));
     await userEvent.click(within(dialog()).getByRole('radio', { name: 'Produce' }));
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Save' }));
+    await sheetClosed();
     expect(await screen.findByText('Produce')).toBeInTheDocument();
     expect((await repo.db.items.get('it-blackbeans'))!.categoryConfirmed).toBe(true);
   });
@@ -92,6 +95,7 @@ describe('item detail', () => {
     expect(within(dialog()).getByRole('radio', { name: 'oz' })).toHaveAttribute('aria-checked', 'true');
     expect(within(dialog()).getByRole('radio', { name: 'Refrigerator' })).toHaveAttribute('aria-checked', 'true');
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Create leftover' }));
+    await sheetClosed();
     expect(await screen.findByText('Opened from')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Black beans, opened');
     expect(screen.getByRole('slider')).toHaveAttribute('aria-valuetext', '8 oz of 8');
@@ -119,6 +123,7 @@ describe('the nag', () => {
     expect(await screen.findByRole('dialog', { name: 'Where do you buy Butter?' })).toBeInTheDocument();
     await userEvent.click(within(dialog()).getByRole('radio', { name: 'Costco' }));
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Save' }));
+    await sheetClosed();
     const [entry] = await repo.db.listEntries.where('itemId').equals('it-butter').toArray();
     expect(entry.storeId).toBe('st-costco');
     expect((await repo.db.items.get('it-butter'))!.preferredStoreId).toBe('st-costco');
