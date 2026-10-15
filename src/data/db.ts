@@ -1,6 +1,7 @@
 // Dexie (IndexedDB) schema. See SPEC §2. Only the repository imports this.
 import Dexie, { type EntityTable } from 'dexie';
-import type { ID, Item, ListEntry, Location, LocationGroup, Staple, Store, Timestamp } from '../domain/types';
+import { defaultCategories } from '../domain/categories';
+import type { Category, ID, Item, ListEntry, Location, LocationGroup, Staple, Store, Timestamp } from '../domain/types';
 
 export interface MetaRow {
   key: string;
@@ -23,6 +24,7 @@ export class PantryDB extends Dexie {
   staples!: EntityTable<Staple, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
   activity!: EntityTable<ActivityRow, 'id'>;
+  categories!: EntityTable<Category, 'id'>;
 
   constructor(name = 'pantry') {
     super(name);
@@ -42,8 +44,13 @@ export class PantryDB extends Dexie {
     this.version(2).stores({
       activity: '++id, itemId, at',
     });
+    // v3: categories become user-maintained. Built-ins keep their old ids, so
+    // existing items' `category` values still match.
+    this.version(3)
+      .stores({ categories: 'id' })
+      .upgrade((tx) => tx.table('categories').bulkPut(defaultCategories(Date.now())));
   }
 }
 
 /** Bump with every new Dexie version. Also written to meta for export/import. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;

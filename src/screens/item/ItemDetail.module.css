@@ -323,3 +323,12 @@
   color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
+
+.manageLink {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}

@@ -13,23 +13,25 @@ import {
   type OpenOneInput,
   type TapDirection,
 } from '../domain/rules';
+import { defaultCategories, guessCategory } from '../domain/categories';
 import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
 import { houseOrder, tripOrder } from '../domain/trip';
 import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
-import type {
-  CategoryKey,
-  ID,
-  Item,
-  ListEntry,
-  Location,
-  LocationGroup,
-  PackageSize,
-  Staple,
-  Store,
-  Timestamp,
+import {
+  FALLBACK_CATEGORY,
+  type Category,
+  type CategoryKey,
+  type ID,
+  type Item,
+  type ListEntry,
+  type Location,
+  type LocationGroup,
+  type PackageSize,
+  type Staple,
+  type Store,
+  type Timestamp,
 } from '../domain/types';
-import { guessCategory } from '../ui/icons';
 import { PantryDB, SCHEMA_VERSION } from './db';
 
 /** What happened to the item's auto list entry after a change. */
@@ -54,7 +56,7 @@ export interface NewItemInput {
   amount?: number;
   preferredStoreId?: ID;
   secondaryStoreId?: ID;
-  category?: CategoryKey;
+  category?: ID;
 }
 
 /** Fields the item detail screen can edit. `undefined` clears an optional field. */
@@ -127,6 +129,7 @@ export class Repo {
     await db.transaction('rw', db.tables, async () => {
       await Promise.all(db.tables.map((t) => t.clear()));
       await db.staples.bulkAdd(seedStaples);
+      await db.categories.bulkAdd(defaultCategories(this.now()));
       await this.markInitialized();
     });
   }
@@ -142,6 +145,7 @@ export class Repo {
       await db.items.bulkAdd(seedItems);
       await db.listEntries.bulkAdd(seedListEntries);
       await db.staples.bulkAdd(seedStaples);
+      await db.categories.bulkAdd(defaultCategories(this.now()));
       await this.markInitialized();
     });
   }
@@ -158,7 +162,8 @@ export class Repo {
   /** Everything except the local-only activity log. */
   async exportData(): Promise<Backup> {
     const { db } = this;
-    return db.transaction('r', [db.items, db.locations, db.groups, db.stores, db.listEntries, db.staples], async () => ({
+    const tables = [db.items, db.locations, db.groups, db.stores, db.listEntries, db.staples, db.categories];
+    return db.transaction('r', tables, async () => ({
       app: 'pantry' as const,
       schemaVersion: SCHEMA_VERSION,
       exportedAt: this.now(),
@@ -169,6 +174,7 @@ export class Repo {
         stores: await db.stores.toArray(),
         listEntries: await db.listEntries.toArray(),
         staples: await db.staples.toArray(),
+        categories: await db.categories.toArray(),
       },
     }));
   }
@@ -185,7 +191,37 @@ export class Repo {
       await db.stores.bulkAdd(tables.stores);
       await db.listEntries.bulkAdd(tables.listEntries);
       await db.staples.bulkAdd(tables.staples);
+      // Backups from before categories were editable don't carry them.
+      await db.categories.bulkAdd(tables.categories ?? defaultCategories(this.now()));
       await this.markInitialized();
+    });
+  }
+
+  // ---------- Categories (Settings → Categories) ----------
+
+  async addCategory(input: { name: string; icon: CategoryKey; keywords: string[] }): Promise<ID> {
+    const id = this.id();
+    await this.db.categories.add({ id, name: input.name.trim(), icon: input.icon, keywords: input.keywords, updatedAt: this.now() });
+    return id;
+  }
+
+  async updateCategory(id: ID, patch: Partial<Pick<Category, 'name' | 'icon' | 'keywords'>>): Promise<void> {
+    const changes = { ...patch, updatedAt: this.now() };
+    if (patch.name != null) changes.name = patch.name.trim();
+    await this.db.categories.update(id, changes);
+  }
+
+  /** Its items move to Other. Other itself can't be deleted. */
+  async deleteCategory(id: ID): Promise<{ movedItems: number }> {
+    if (id === FALLBACK_CATEGORY) throw new Error('Other can’t be deleted');
+    const { db } = this;
+    return db.transaction('rw', db.categories, db.items, async () => {
+      const t = this.now();
+      const movedItems = await db.items
+        .filter((i) => i.category === id)
+        .modify({ category: FALLBACK_CATEGORY, updatedAt: t });
+      await db.categories.delete(id);
+      return { movedItems };
     });
   }
 
@@ -216,7 +252,7 @@ export class Repo {
 
   private async changeItem(itemId: ID, mutate: (item: Item) => Partial<Item> | null): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const changes = mutate(item);
@@ -251,13 +287,14 @@ export class Repo {
       id: this.id(),
       name,
       amount: Math.max(0, input.amount ?? 0),
-      category: input.category ?? guessCategory(name),
+      category: input.category ?? FALLBACK_CATEGORY, // guessed below, inside the transaction
       categoryConfirmed: input.category != null || undefined,
       isLeftover: false,
       createdAt: t,
       updatedAt: t,
     };
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
+      if (input.category == null) item.category = guessCategory(name, await db.categories.toArray());
       await db.items.add(item);
       await this.touch(item.id);
       return { id: item.id, change: await this.reconcile(item.id) };
@@ -267,13 +304,15 @@ export class Repo {
   /** Edits fields. Renaming re-guesses the icon until the user has picked one. */
   async updateItem(itemId: ID, patch: ItemPatch): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const changes: Partial<Item> = { ...patch, updatedAt: this.now() };
       if (patch.name != null) {
         changes.name = patch.name.trim() || item.name;
-        if (!item.categoryConfirmed && patch.category == null) changes.category = guessCategory(changes.name);
+        if (!item.categoryConfirmed && patch.category == null) {
+          changes.category = guessCategory(changes.name, await db.categories.toArray());
+        }
       }
       if (patch.category != null) changes.categoryConfirmed = true;
       // Dexie's update() ignores undefined values; explicit clears need a full put.
@@ -315,7 +354,7 @@ export class Repo {
 
   async restoreItem(itemId: ID): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const item = await db.items.get(itemId);
       if (!item) throw new Error(`No item ${itemId}`);
       const restored: Item = { ...item, updatedAt: this.now() };
@@ -331,7 +370,7 @@ export class Repo {
    */
   async deleteItem(itemId: ID): Promise<void> {
     const { db } = this;
-    await db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    await db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const item = await db.items.get(itemId);
       if (!item) return;
       if (item.archivedAt == null) throw new Error('Archive an item before deleting it');
@@ -349,7 +388,7 @@ export class Repo {
   /** Creates a linked leftover; optionally takes one from the parent. */
   async openOne(parentId: ID, input: OpenOneInput): Promise<{ leftoverId: ID; parentChange: ItemChange }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const parent = await db.items.get(parentId);
       if (!parent) throw new Error(`No item ${parentId}`);
       const { leftover, parentAmount } = buildLeftover(parent, input);
@@ -373,7 +412,7 @@ export class Repo {
    */
   async addListEntry(input: NewEntryInput): Promise<{ id: ID; missing: ReturnType<typeof missingForList> }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const item = input.itemId ? await db.items.get(input.itemId) : undefined;
       const t = this.now();
       const entry: ListEntry = {
@@ -411,7 +450,7 @@ export class Repo {
   /** Swap between the item's preferred and secondary store. No-op if it lacks either. */
   async moveEntryToAlternate(entryId: ID): Promise<void> {
     const { db } = this;
-    await db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    await db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const e = await db.listEntries.get(entryId);
       if (!e) return;
       const item = e.itemId ? await db.items.get(e.itemId) : undefined;
@@ -460,7 +499,7 @@ export class Repo {
    */
   async logPurchase(entryId: ID, quantity: number): Promise<ItemChange> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const e = await db.listEntries.get(entryId);
       if (!e) throw new Error(`No entry ${entryId}`);
       const t = this.now();
@@ -503,7 +542,7 @@ export class Repo {
    */
   async finishTrip(): Promise<{ cleared: number }> {
     const { db } = this;
-    return db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+    return db.transaction('rw', db.items, db.listEntries, db.activity, db.categories, async () => {
       const done = (await db.listEntries.toArray()).filter((e) => e.checked);
       await db.listEntries.bulkDelete(done.map((e) => e.id));
       const itemIds = new Set(done.flatMap((e) => (e.itemId ? [e.itemId] : [])));
@@ -682,6 +721,8 @@ export interface Backup {
     stores: Store[];
     listEntries: ListEntry[];
     staples: Staple[];
+    /** Missing in backups made before categories were editable. */
+    categories?: Category[];
   };
 }
 
@@ -701,6 +742,8 @@ export function validateBackup(data: unknown): Backup {
   }
   const ok = (rows: unknown[]) => rows.every((r) => r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string');
   if (!BACKUP_TABLES.every((t) => ok(d.tables![t]))) throw new BackupError('The backup looks damaged.');
+  const cats = d.tables!.categories;
+  if (cats !== undefined && !(Array.isArray(cats) && ok(cats))) throw new BackupError('The backup looks damaged.');
   return d as Backup;
 }
 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmSheet } from '../../ui/ConfirmSheet';
+import { useCategories } from '../../app/categories';
+import { categoryIcon } from '../../domain/categories';
 import { useNag } from '../../app/nag';
 import { useItem, useStores } from '../../data/hooks';
 import { repo } from '../../data/repo';
@@ -14,9 +16,7 @@ import {
   isSingleContainer,
 } from '../../domain/rules';
 import type { Item } from '../../domain/types';
-import { CATEGORY_LABELS } from '../../domain/units';
 import { Button } from '../../ui/Button';
-import { CATEGORY_ICONS } from '../../ui/icons';
 import { Icon } from '../../ui/Icon';
 import { ScreenBody } from '../../ui/Screen';
 import { StatusBar } from '../../ui/StatusBar';
@@ -33,6 +33,7 @@ export function ItemDetailScreen() {
   const stores = useStores() ?? [];
   const nag = useNag();
   const navigate = useNavigate();
+  const categories = useCategories();
   const [sheet, setSheet] = useState<OpenSheet>(null);
 
   if (data === undefined) return <TopBar />;
@@ -65,12 +66,12 @@ export function ItemDetailScreen() {
       <ScreenBody>
         <div className={styles.identity}>
           <span className={styles.iconTileLg}>
-            <Icon path={CATEGORY_ICONS[item.category]} size={28} strokeWidth={1.5} />
+            <Icon path={categoryIcon(item.category, categories.byId)} size={28} strokeWidth={1.5} />
           </span>
           <div className={styles.identityText}>
             <h1 className={styles.name}>{item.name}</h1>
             <span className={styles.category}>
-              {CATEGORY_LABELS[item.category]}{' '}
+              {categories.byId.get(item.category)?.name ?? 'Other'}{' '}
               <button type="button" className={styles.inlineLink} onClick={() => setSheet('category')}>
                 Change
               </button>

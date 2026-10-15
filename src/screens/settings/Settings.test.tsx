@@ -185,7 +185,8 @@ describe('settings: more', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Export data' }));
     expect(await screen.findByText(/^Saved pantry-backup-\d{4}-\d{2}-\d{2}\.json\.$/)).toBeInTheDocument();
     const backup = JSON.parse(await created[0].text());
-    expect(backup).toMatchObject({ app: 'pantry', schemaVersion: 2 });
+    expect(backup).toMatchObject({ app: 'pantry', schemaVersion: 3 });
+    expect(backup.tables.categories).toHaveLength(13);
     expect(backup.tables.items).toHaveLength(11);
     click.mockRestore();
   });

@@ -1,3 +1,4 @@
+import Dexie from 'dexie';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PantryDB } from './db';
 import { Repo } from './repo';
@@ -88,6 +89,44 @@ describe('activity', () => {
     expect((await db.activity.toArray()).map((a) => a.itemId)).toEqual(['it-milk', 'it-milk', 'it-eggs', id]);
     const old = new Repo(db, () => Date.now() + 31 * 24 * 60 * 60 * 1000);
     expect(await old.pruneActivity()).toBe(4);
+  });
+});
+
+describe('categories', () => {
+  it('new items are guessed from user words first, then built-ins', async () => {
+    await repo.addCategory({ name: 'Snacks', icon: 'generic', keywords: ['chips'] });
+    const { id: chips } = await repo.createItem({ name: 'Tortilla chips', locationId: null });
+    const { id: tortillas } = await repo.createItem({ name: 'Tortillas', locationId: null });
+    const snacks = (await db.categories.toArray()).find((c) => c.name === 'Snacks')!;
+    expect((await item(chips)).category).toBe(snacks.id);
+    expect((await item(tortillas)).category).toBe('grains');
+  });
+
+  it('deleting a category moves its items to Other; Other stays', async () => {
+    expect(await repo.deleteCategory('canned')).toEqual({ movedItems: 2 });
+    expect((await item('it-blackbeans')).category).toBe('generic');
+    await expect(repo.deleteCategory('generic')).rejects.toThrow('Other');
+  });
+
+  it('a v2 database (before categories) upgrades with the built-ins and keeps its items', async () => {
+    const name = `test-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    old.version(1).stores({ items: 'id, locationId, parentId, archivedAt', locations: 'id, groupId', groups: 'id', stores: 'id', listEntries: 'id, itemId, storeId', staples: 'id', meta: 'key' });
+    old.version(2).stores({ activity: '++id, itemId, at' });
+    await old.table('items').add({ id: 'x', name: 'Milk', category: 'dairy', amount: 1, locationId: null, isLeftover: false, createdAt: 1, updatedAt: 1 });
+    old.close();
+    const upgraded = new PantryDB(name);
+    expect(await upgraded.categories.get('dairy')).toMatchObject({ name: 'Dairy', icon: 'dairy' });
+    expect(await upgraded.categories.count()).toBe(13);
+    expect(await upgraded.items.get('x')).toMatchObject({ category: 'dairy' });
+  });
+
+  it('a backup made before categories imports with the built-ins', async () => {
+    const backup = await repo.exportData();
+    delete backup.tables.categories;
+    const other = new Repo(new PantryDB(`test-${crypto.randomUUID()}`));
+    await other.importData({ ...backup, schemaVersion: 2 });
+    expect(await other.db.categories.count()).toBe(13);
   });
 });
 

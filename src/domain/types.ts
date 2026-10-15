@@ -7,6 +7,10 @@ export type ID = string;
 /** Epoch milliseconds. */
 export type Timestamp = number;
 
+/**
+ * An icon from the built-in set. Also the id of each built-in category, so items
+ * saved before categories became editable keep pointing at the right one.
+ */
 export type CategoryKey =
   | 'canned'
   | 'dairy'
@@ -50,8 +54,8 @@ export interface Item {
   preferredStoreId?: ID;
   secondaryStoreId?: ID;
 
-  /** Guessed from the name, correctable. Drives the icon only. */
-  category: CategoryKey;
+  /** Category id. Guessed from the name, correctable. Drives the icon only. */
+  category: ID;
   /** True once the user has picked a category, so re-guessing on rename stops. */
   categoryConfirmed?: boolean;
 
@@ -66,6 +70,20 @@ export interface Item {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+/** User-maintained in Settings → Categories. Only picks an icon. */
+export interface Category {
+  /** Built-ins use their icon key as id ('canned'); new ones get a UUID. */
+  id: ID;
+  name: string;
+  icon: CategoryKey;
+  /** Extra words that pick this category when naming an item ("tortilla", "wrap"). */
+  keywords: string[];
+  updatedAt: Timestamp;
+}
+
+/** "Other": the fallback. Can be renamed, never deleted. */
+export const FALLBACK_CATEGORY: ID = 'generic';
 
 export interface LocationGroup {
   id: ID;

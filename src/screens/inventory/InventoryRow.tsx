@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useCategory } from '../../app/categories';
 import { useNag } from '../../app/nag';
 import { useOptimisticAmount } from '../../data/useOptimisticAmount';
 import type { InventoryRow as Row } from '../../domain/inventory';
 import { formatAmount, getStatus, isSetUp } from '../../domain/rules';
-import { CATEGORY_ICONS } from '../../ui/icons';
 import { Icon } from '../../ui/Icon';
 import { StatusBar } from '../../ui/StatusBar';
 import { useLongPress } from '../../ui/useLongPress';
@@ -15,11 +15,12 @@ export function InventoryRow({ row }: { row: Row }) {
   const href = `/item/${item.id}`;
   const open = () => navigate(href);
   const longPress = useLongPress(open);
+  const category = useCategory(item.category);
 
   return (
     <div className={styles.row} {...longPress}>
       <span className={styles.iconTile}>
-        <Icon path={CATEGORY_ICONS[item.category]} size={18} strokeWidth={1.6} />
+        <Icon path={category.icon} size={18} strokeWidth={1.6} />
       </span>
       <Link to={href} className={styles.name} draggable={false}>
         {item.name}

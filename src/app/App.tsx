@@ -4,6 +4,7 @@ import { TabBar } from './TabBar';
 import { useInitialized, useShoppingList } from '../data/hooks';
 import { repo } from '../data/repo';
 import { NagProvider } from './NagProvider';
+import { CategoriesProvider } from './CategoriesProvider';
 import styles from './App.module.css';
 import { InventoryScreen } from '../screens/inventory/InventoryScreen';
 import { ItemDetailScreen } from '../screens/item/ItemDetailScreen';
@@ -43,9 +44,11 @@ export function App() {
   }, [initialized]);
   if (!initialized) return null; // first IndexedDB read, or loading sample data: a moment
   return (
-    <NagProvider>
-      <AppRoutes />
-    </NagProvider>
+    <CategoriesProvider>
+      <NagProvider>
+        <AppRoutes />
+      </NagProvider>
+    </CategoriesProvider>
   );
 }
 

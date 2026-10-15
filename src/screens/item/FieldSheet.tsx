@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { useCategories } from '../../app/categories';
 import { useNag } from '../../app/nag';
 import { useLocations, useStores } from '../../data/hooks';
 import { repo, type ItemPatch } from '../../data/repo';
 import { effectiveThreshold, formatQuantity, pluralUnit } from '../../domain/rules';
-import type { CategoryKey, ID, Item } from '../../domain/types';
-import { CATEGORY_LABELS, ITEM_UNITS, PACKAGE_UNITS, withUnit } from '../../domain/units';
+import type { ID, Item } from '../../domain/types';
+import { ITEM_UNITS, PACKAGE_UNITS, withUnit } from '../../domain/units';
 import { Button } from '../../ui/Button';
 import { CATEGORY_ICONS } from '../../ui/icons';
 import { Icon } from '../../ui/Icon';
@@ -118,7 +120,8 @@ function NameSheet({ item, onClose, save }: SheetProps) {
 }
 
 function CategorySheet({ item, onClose, save }: SheetProps) {
-  const [category, setCategory] = useState<CategoryKey>(item.category);
+  const { list } = useCategories();
+  const [category, setCategory] = useState<ID>(item.category);
   return (
     <EditSheet
       title="Category"
@@ -127,20 +130,23 @@ function CategorySheet({ item, onClose, save }: SheetProps) {
       onSave={() => void save({ category })}
     >
       <div role="radiogroup" aria-label="Category" className={styles.categoryGrid}>
-        {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((k) => (
+        {list.map((c) => (
           <button
-            key={k}
+            key={c.id}
             type="button"
             role="radio"
-            aria-checked={category === k}
+            aria-checked={category === c.id}
             className={styles.categoryTile}
-            onClick={() => setCategory(k)}
+            onClick={() => setCategory(c.id)}
           >
-            <Icon path={CATEGORY_ICONS[k]} size={24} strokeWidth={1.6} />
-            <span>{CATEGORY_LABELS[k]}</span>
+            <Icon path={CATEGORY_ICONS[c.icon]} size={24} strokeWidth={1.6} />
+            <span>{c.name}</span>
           </button>
         ))}
       </div>
+      <Link to="/settings/categories" className={styles.manageLink}>
+        Add or edit categories
+      </Link>
     </EditSheet>
   );
 }

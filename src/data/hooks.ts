@@ -172,6 +172,17 @@ export function useStoreSettings(): StoreSettingsRow[] | undefined {
   }, []);
 }
 
+/** Non-archived items per category id, for Settings → Categories. */
+export function useCategoryCounts(): Map<ID, number> | undefined {
+  return useLiveQuery(async () => {
+    const counts = new Map<ID, number>();
+    for (const i of await db.items.toArray()) {
+      if (i.archivedAt == null) counts.set(i.category, (counts.get(i.category) ?? 0) + 1);
+    }
+    return counts;
+  }, []);
+}
+
 /** Archived items, most recently archived first. */
 export function useArchived(): Item[] | undefined {
   return useLiveQuery(async () => {

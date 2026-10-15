@@ -53,8 +53,11 @@ const KEYWORDS: [CategoryKey, RegExp][] = [
   ['household', /soap|detergent|paper towel|toilet|sponge|trash bag|foil|wrap/i],
 ];
 
-/** Guess an icon category from a free-text item name. Falls back to 'generic'. */
-export function guessCategory(name: string): CategoryKey {
+/**
+ * Built-in guess of a category from a free-text item name. Falls back to 'generic'.
+ * domain/categories guessCategory() layers the user's own words on top.
+ */
+export function builtInGuess(name: string): CategoryKey {
   for (const [key, re] of KEYWORDS) if (re.test(name)) return key;
   return 'generic';
 }
