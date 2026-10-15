@@ -23,14 +23,19 @@ export function Sheet({ open, onClose, title, description, children, actions }: 
 
   useEffect(() => {
     const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) {
-      d.showModal();
-      // showModal() focuses the first field, which pops the phone keyboard over the
-      // sheet. Focus the title instead, unless a field opts in with data-autofocus.
-      (d.querySelector<HTMLElement>('[data-autofocus]') ?? d.querySelector<HTMLElement>('h2'))?.focus();
-    }
-    if (!open && d.open) d.close();
+    if (!d || !open) return;
+    // Whatever opened the sheet gets focus back when it closes or unmounts. Most
+    // sheets unmount rather than close, and the browser only restores on close().
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!d.open) d.showModal();
+    // showModal() focuses the first field, which pops the phone keyboard over the
+    // sheet. Focus the title instead, unless a field opts in with data-autofocus.
+    (d.querySelector<HTMLElement>('[data-autofocus]') ?? d.querySelector<HTMLElement>('h2'))?.focus();
+    return () => {
+      if (d.open) d.close();
+      // The opener may be gone (a deleted row); then focus falls back to the page.
+      if (opener?.isConnected) opener.focus();
+    };
   }, [open]);
 
   return (

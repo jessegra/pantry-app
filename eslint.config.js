@@ -21,8 +21,8 @@ export default tseslint.config(
     },
   },
   {
-    // Config files may name the brand colour (PWA manifest).
-    files: ['vite.config.ts', 'playwright.config.ts'],
+    // Config files and e2e checks may name the brand colour (PWA manifest).
+    files: ['vite.config.ts', 'playwright.config.ts', 'e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
     rules: { 'no-restricted-syntax': 'off' },
   },

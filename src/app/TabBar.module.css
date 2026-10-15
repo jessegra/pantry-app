@@ -31,6 +31,29 @@
   font-weight: var(--weight-semibold);
 }
 
+/* Tablet: the tab bar becomes a left rail. */
+@media (min-width: 768px) {
+  .bar {
+    order: -1;
+    grid-template-columns: none;
+    grid-auto-rows: 64px;
+    align-content: start;
+    gap: 4px;
+    width: 88px;
+    padding: calc(env(safe-area-inset-top) + 12px) 8px 12px calc(env(safe-area-inset-left) + 8px);
+    border-top: 0;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .tab {
+    height: 64px;
+  }
+
+  .tab[aria-current='page'] {
+    background: var(--color-primary-tint);
+  }
+}
+
 .badge {
   position: absolute;
   top: 4px;

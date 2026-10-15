@@ -19,17 +19,3 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
-.placeholder {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 24px var(--gutter);
-  color: var(--color-text-secondary);
-  line-height: 1.45;
-}
-
-.caption {
-  color: var(--color-text-muted);
-  font-size: var(--text-caption);
-}

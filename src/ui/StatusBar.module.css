@@ -15,7 +15,10 @@
   border-radius: var(--radius-md);
 }
 
+/* In a column (item detail), flex: 1 would collapse the zone to the 22px track.
+   The tap zone must stay 48px tall. */
 .zone[data-size='large'] {
+  flex: none;
   height: 48px;
 }
 

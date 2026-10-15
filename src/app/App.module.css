@@ -6,10 +6,53 @@
   padding-right: env(safe-area-inset-right);
 }
 
+/* Just shopped on a tablet: a comfortable column, not a full-width stretch. */
+.frame[data-centered='true'] {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
 /* Each screen owns its own fixed header + scrolling middle band. */
 .content {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Tablet (SPEC §4.8): rail | list pane | detail pane. */
+.wide {
+  height: 100%;
+  display: flex;
+  padding-right: env(safe-area-inset-right);
+}
+
+.listPane {
+  flex: none;
+  width: clamp(380px, 40vw, 420px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+}
+
+.detailPane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.selectItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: var(--gutter);
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
 }

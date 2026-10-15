@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { lastListLocation } from '../../app/listMemory';
 import { ConfirmSheet } from '../../ui/ConfirmSheet';
-import { useCategories } from '../../app/categories';
+import { useWide } from '../../ui/useMediaQuery';
+import { categoryName, useCategories } from '../../app/categories';
 import { categoryIcon } from '../../domain/categories';
 import { useNag } from '../../app/nag';
 import { useItem, useStores } from '../../data/hooks';
@@ -71,7 +73,7 @@ export function ItemDetailScreen() {
           <div className={styles.identityText}>
             <h1 className={styles.name}>{item.name}</h1>
             <span className={styles.category}>
-              {categories.byId.get(item.category)?.name ?? 'Other'}{' '}
+              {categoryName(item.category, categories.byId)}{' '}
               <button type="button" className={styles.inlineLink} onClick={() => setSheet('category')}>
                 Change
               </button>
@@ -213,12 +215,21 @@ export function ItemDetailScreen() {
 }
 
 function TopBar({ onEdit }: { onEdit?: () => void }) {
+  const wide = useWide();
+  const list = lastListLocation();
   return (
     <header className={styles.topBar}>
-      <Link to="/" className={styles.back}>
-        <Icon name="chevronLeft" size={20} strokeWidth={2} />
-        Inventory
-      </Link>
+      {wide ? (
+        // Tablet: the list is still on the left; this just empties the detail pane.
+        <Link to={`${list.pathname}${list.search}`} className={styles.back}>
+          Close
+        </Link>
+      ) : (
+        <Link to="/" className={styles.back}>
+          <Icon name="chevronLeft" size={20} strokeWidth={2} />
+          Inventory
+        </Link>
+      )}
       {onEdit && (
         <button type="button" className={styles.edit} onClick={onEdit} aria-label="Edit name">
           Edit

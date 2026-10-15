@@ -8,21 +8,40 @@ import type { useDragReorder } from '../../ui/useDragReorder';
 import styles from './Settings.module.css';
 
 /** Tap the name to rename it in place. Enter or leaving the field saves; Esc cancels. */
-export function InlineName({ value, onSave, className }: { value: string; onSave: (v: string) => void; className?: string }) {
+export function InlineName({
+  value,
+  onSave,
+  className,
+  meta,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  className?: string;
+  /** A second line ("Preferred for 2 items") inside the same tap target. */
+  meta?: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   if (!editing) {
     return (
       <button
         type="button"
-        className={[styles.name, className].filter(Boolean).join(' ')}
+        className={[styles.name, meta && styles.nameWithMeta, className].filter(Boolean).join(' ')}
         aria-label={`Rename ${value}`}
+        aria-description={meta}
         onClick={() => {
           setDraft(value);
           setEditing(true);
         }}
       >
-        {value}
+        {meta ? (
+          <>
+            <span>{value}</span>
+            <span className={styles.metaLine}>{meta}</span>
+          </>
+        ) : (
+          value
+        )}
       </button>
     );
   }

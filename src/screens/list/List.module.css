@@ -116,9 +116,10 @@
   justify-content: center;
 }
 
+/* Checked-off rows: grey, but still readable (--color-text-disabled is only 3:1 on white). */
 .row[data-checked='true'] .box {
-  border-color: var(--color-text-disabled);
-  background: var(--color-text-disabled);
+  border-color: var(--color-text-muted);
+  background: var(--color-text-muted);
 }
 
 .main {
@@ -141,7 +142,7 @@
 }
 
 .row[data-checked='true'] .name {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   text-decoration: line-through;
 }
 
@@ -162,7 +163,8 @@
 }
 
 .row[data-checked='true'] .qty {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
 }
 
 .move {

@@ -139,6 +139,17 @@ Two panes: list screens (Inventory, List, Settings) on the left at 380–420px, 
 7. Mockup copy "1 can = 15 oz" changed to the brief's "1 can = 8 oz" so the 8 oz leftover par lines up.
 8. Lemons, Tortillas, Dish soap and the "Floor bin" location are invented demo data (see `seed.ts`).
 
+### Decisions made during the build (owner, Oct 2026)
+
+9. **Data:** first open loads the sample data automatically (for testing). Settings → More has Reset to sample data / Erase everything, Export / Import (JSON backup), and the build version with Check for updates.
+10. **Locations:** an item's location can be Unassigned from the start; every location picker offers Unassigned and an inline "New location". No dead end on a blank pantry.
+11. **New item sheet:** name and location are still all that's required, but an optional "Add unit, par and store now" section sets an item up completely at creation.
+12. **Delete:** Archive stays the default; archived items can then be deleted permanently (item screen and Settings → More). This relaxes "never hard-deleted" in §3.
+13. **Categories** are user-maintained (Settings → Categories): name, icon from the built-in set, and "words that pick it" for guessing. Deleting one moves its items to Other; Other can't be deleted. Built-in ids are the old keys (Dexie v3 migration).
+14. **Settings** has four sections: Locations | Stores | Categories | More.
+15. **Checked-off list rows** use `--color-text-muted`, not `--color-text-disabled`: the latter is 3:1 on white and failed the WCAG AA audit.
+16. **Tablet:** opening an item keeps the list that opened it on the left; the detail pane's top-left action is Close.
+
 ## 7. Out of scope, but keep the model ready
 
 - **Instacart:** `Store.onInstacart` exists. A future export would send one store's portion at a time.

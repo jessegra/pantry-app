@@ -34,7 +34,7 @@ describe('item detail', () => {
   it('shows a configured item like DetailFull', async () => {
     renderAt('/item/it-blackbeans');
     expect(await screen.findByRole('heading', { level: 1, name: 'Black beans' })).toBeInTheDocument();
-    expect(screen.getByText('Canned goods')).toBeInTheDocument();
+    expect(await screen.findByText('Canned goods')).toBeInTheDocument();
     expect(screen.getByText('3 cans')).toBeInTheDocument();
     expect(screen.getByText('of 8 cans')).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Black beans' })).toHaveAttribute('aria-valuetext', '3 cans of 8');
@@ -76,6 +76,16 @@ describe('item detail', () => {
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Save' }));
     await sheetClosed();
     expect(await screen.findByText('of 10 cans')).toBeInTheDocument();
+  });
+
+  it('closing a sheet puts focus back on what opened it', async () => {
+    renderAt('/item/it-blackbeans');
+    const par = await screen.findByRole('button', { name: /^Par/ });
+    await userEvent.click(par);
+    expect(within(dialog()).getByRole('heading', { name: 'Par' })).toHaveFocus();
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
+    await sheetClosed();
+    expect(screen.getByRole('button', { name: /^Par/ })).toHaveFocus();
   });
 
   it('changing the category confirms it', async () => {

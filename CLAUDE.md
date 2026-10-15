@@ -52,6 +52,14 @@ Already written and tested, use as-is and extend:
 | `ShoppingList.dc.html` | `/list` |
 | `Shopped.dc.html`, `ShoppedDone.dc.html` | `/shopped` |
 | `SettingsLocations.dc.html`, `SettingsStores.dc.html` | `/settings/locations`, `/settings/stores` |
+| (no mockup) | `/settings/categories`, `/settings/more` |
+
+Decisions made after the mockups are logged in `docs/SPEC.md` §6 ("Decisions made during the build").
+
+## Checks
+
+- `npm test`: unit + component tests (Vitest, jsdom, fake-indexeddb).
+- `npm run e2e`: Playwright against the production build: offline core loop, install criteria, and an axe (WCAG 2.2 AA) + 44px tap-target audit of every screen at phone and tablet sizes. CI runs all of it before publishing to GitHub Pages.
 
 ## Commands (once scaffolded in Milestone 1)
 

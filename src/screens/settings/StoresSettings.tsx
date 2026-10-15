@@ -52,10 +52,11 @@ export function StoresSettings() {
                 style={lifted ? { transform: `translateY(${drag.dy}px)` } : undefined}
               >
                 <DragHandle label={r.store.name} props={handleProps(i)} />
-                <span className={styles.stack}>
-                  <InlineName value={r.store.name} onSave={(name) => void repo.renameStore(r.store.id, name)} />
-                  <span className={styles.metaLine}>{storeMeta(r)}</span>
-                </span>
+                <InlineName
+                  value={r.store.name}
+                  meta={storeMeta(r)}
+                  onSave={(name) => void repo.renameStore(r.store.id, name)}
+                />
                 <DeleteButton label={r.store.name} onClick={() => setDeleting(r)} />
               </div>
             </div>
