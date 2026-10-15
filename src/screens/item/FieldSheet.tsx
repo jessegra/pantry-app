@@ -217,8 +217,14 @@ function LocationSheet({ item, onClose, save }: SheetProps) {
   const data = useLocations();
   const [locationId, setLocationId] = useState<ID | null>(item.locationId);
   return (
-    <EditSheet title="Location" onClose={onClose} onSave={() => void save({ locationId })} canSave={locationId != null}>
-      <LocationPicker value={locationId} onChange={setLocationId} locations={data?.locations ?? []} groups={data?.groups ?? []} />
+    <EditSheet title="Location" onClose={onClose} onSave={() => void save({ locationId })}>
+      <LocationPicker
+        value={locationId}
+        onChange={setLocationId}
+        locations={data?.locations ?? []}
+        groups={data?.groups ?? []}
+        onCreate={(name) => repo.addLocation(name)}
+      />
     </EditSheet>
   );
 }

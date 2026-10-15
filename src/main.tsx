@@ -8,8 +8,10 @@ import './styles/tokens.css';
 import './styles/global.css';
 import { App } from './app/App';
 import { repo } from './data/repo';
+import { watchForUpdates } from './app/updates';
 
 void repo.pruneActivity();
+watchForUpdates();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

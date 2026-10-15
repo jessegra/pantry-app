@@ -91,6 +91,28 @@ describe('activity', () => {
   });
 });
 
+describe('permanent delete', () => {
+  it('only deletes archived items, taking entries and activity with them; leftovers stay', async () => {
+    await expect(repo.deleteItem('it-blackbeans')).rejects.toThrow('Archive');
+    await repo.tap('it-blackbeans', -1); // listed + activity
+    await repo.archiveItem('it-blackbeans');
+    await repo.addListEntry({ name: 'Black beans', itemId: 'it-blackbeans' });
+    await repo.deleteItem('it-blackbeans');
+    expect(await db.items.get('it-blackbeans')).toBeUndefined();
+    expect(await entriesFor('it-blackbeans')).toEqual([]);
+    expect(await db.activity.where('itemId').equals('it-blackbeans').count()).toBe(0);
+    expect((await item('it-blackbeans-open')).parentId).toBeUndefined();
+  });
+
+  it('first open loads the sample data once, even if asked twice at the same time', async () => {
+    const fresh = new Repo(new PantryDB(`test-${crypto.randomUUID()}`));
+    await Promise.all([fresh.ensureInitialized(), fresh.ensureInitialized()]);
+    expect(await fresh.db.items.count()).toBe(11);
+    await fresh.ensureInitialized();
+    expect(await fresh.db.items.count()).toBe(11);
+  });
+});
+
 describe('items', () => {
   it('creates with a guessed category, and re-guesses on rename until confirmed', async () => {
     const { id } = await repo.createItem({ name: 'Tortillas', locationId: 'loc-cab' });

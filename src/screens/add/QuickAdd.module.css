@@ -189,6 +189,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Create sheet: optional details */
+.detailsToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+}
+
+.detailsChevron {
+  flex: none;
+  transition: transform var(--motion-fast);
+}
+
+.detailsToggle[aria-expanded='true'] .detailsChevron {
+  transform: rotate(90deg);
+}
+
+.optional {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-regular);
+}
+
 .caption {
   color: var(--color-text-muted);
   font-size: var(--text-caption);

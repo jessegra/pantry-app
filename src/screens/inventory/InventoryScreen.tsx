@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useInventory } from '../../data/hooks';
 import { filterInventory, statusCounts, type InventoryLocation, type StatusFilter } from '../../domain/inventory';
+import { ButtonLink } from '../../ui/Button';
 import { Chip } from '../../ui/Chip';
 import { Icon } from '../../ui/Icon';
 import { ScreenBody } from '../../ui/Screen';
@@ -74,16 +75,26 @@ export function InventoryScreen() {
               </div>
             ),
           )}
-        {data && shown.length === 0 && (
+        {data && shown.length === 0 && narrowed && (
           <p className={styles.noResults}>
             {query.trim()
               ? `Nothing matches “${query.trim()}”`
               : filter === 'out'
                 ? 'Nothing is out'
-                : filter === 'low'
-                  ? 'Nothing is low'
-                  : 'No locations yet. Add some in Settings.'}
+                : 'Nothing is low'}
           </p>
+        )}
+        {data && shown.length === 0 && !narrowed && (
+          <div className={styles.blank}>
+            <p className={styles.blankTitle}>Your pantry is empty</p>
+            <p className={styles.noResultsText}>
+              Add what you have. Items can go under Unassigned and get a location later.
+            </p>
+            <ButtonLink to="/add">Add items</ButtonLink>
+            <ButtonLink to="/settings/locations" variant="secondary">
+              Set up locations
+            </ButtonLink>
+          </div>
         )}
       </ScreenBody>
     </>

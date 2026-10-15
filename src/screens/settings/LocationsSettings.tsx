@@ -6,9 +6,10 @@ import type { ID } from '../../domain/types';
 import { Button } from '../../ui/Button';
 import { Chip } from '../../ui/Chip';
 import sheetStyles from '../../ui/Sheet.module.css';
+import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { useDragReorder } from '../../ui/useDragReorder';
 import { useOptimisticOrder } from '../../ui/useOptimisticOrder';
-import { ConfirmDelete, DeleteButton, DragHandle, InlineName, NameSheet, ReorderHint } from './parts';
+import { DeleteButton, DragHandle, InlineName, NameSheet, ReorderHint } from './parts';
 import { plural } from '../../domain/text';
 import styles from './Settings.module.css';
 
@@ -111,7 +112,7 @@ export function LocationsSettings() {
         />
       )}
       {sheet?.kind === 'delete' && (
-        <ConfirmDelete
+        <ConfirmSheet
           title={sheet.target.row.kind === 'group' ? `Delete the ${sheet.target.name} group?` : `Delete ${sheet.target.name}?`}
           consequence={
             sheet.target.row.kind === 'group'

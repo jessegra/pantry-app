@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 test('core loop works offline', async ({ page, context }) => {
   test.slow(); // a long journey: 3× the default budget, for slow CI machines
   await page.goto('./');
-  await page.getByRole('button', { name: 'Load sample data' }).click();
+  // First open loads the sample data by itself.
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();

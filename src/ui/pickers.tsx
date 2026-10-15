@@ -53,13 +53,22 @@ export function UnitPicker({ label = 'Unit', value, options, onChange }: ChoiceP
   );
 }
 
-/** Location chips: ungrouped first, then each group under its label (SPEC §4.4). */
+/**
+ * Location chips: ungrouped first, then each group under its label (SPEC §4.4),
+ * then Unassigned (null) so an item can get a place later, and a "New location"
+ * entry so an empty setup never dead-ends.
+ */
 export function LocationPicker({
   value,
   onChange,
   locations,
   groups,
-}: ChoiceProps<ID | null> & { locations: Location[]; groups: LocationGroup[] }) {
+  onCreate,
+}: ChoiceProps<ID | null> & {
+  locations: Location[];
+  groups: LocationGroup[];
+  onCreate: (name: string) => Promise<ID>;
+}) {
   const id = useId();
   const groupIds = new Set(groups.map((g) => g.id));
   const sets = [
@@ -84,8 +93,45 @@ export function LocationPicker({
             </div>
           </div>
         ))}
-        {sets.length === 0 && <p className={styles.hint}>No locations yet. Add some in Settings.</p>}
+        <div className={sheetStyles.chips}>
+          <Chip kind="radio" selected={value === null} onClick={() => onChange(null)} className={styles.unassigned}>
+            Unassigned
+          </Chip>
+        </div>
       </div>
+      <InlineCreate label="New location" onCreate={async (name) => onChange(await onCreate(name))} />
+    </div>
+  );
+}
+
+/** "New store" / "New location": type a name, Add, and it's created and selected. */
+function InlineCreate({ label, onCreate }: { label: string; onCreate: (name: string) => Promise<void> }) {
+  const [draft, setDraft] = useState('');
+  const create = async () => {
+    const name = draft.trim();
+    if (!name) return;
+    await onCreate(name);
+    setDraft('');
+  };
+  return (
+    <div className={styles.inline}>
+      <input
+        className={sheetStyles.textInput}
+        aria-label={`${label} name`}
+        placeholder={label}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            void create();
+          }
+        }}
+      />
+      <button type="button" className={styles.inlineAdd} onClick={() => void create()} disabled={!draft.trim()}>
+        Add
+      </button>
     </div>
   );
 }
@@ -104,13 +150,6 @@ export function StorePicker({
   onCreate: (name: string) => Promise<ID>;
 }) {
   const id = useId();
-  const [draft, setDraft] = useState('');
-  const create = async () => {
-    const name = draft.trim();
-    if (!name) return;
-    onChange(await onCreate(name));
-    setDraft('');
-  };
   return (
     <div className={sheetStyles.field}>
       <span id={id} className={sheetStyles.label}>
@@ -128,24 +167,7 @@ export function StorePicker({
           </Chip>
         )}
       </div>
-      <div className={styles.inline}>
-        <input
-          className={sheetStyles.textInput}
-          aria-label="New store name"
-          placeholder="New store"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              void create();
-            }
-          }}
-        />
-        <button type="button" className={styles.inlineAdd} onClick={() => void create()} disabled={!draft.trim()}>
-          Add
-        </button>
-      </div>
+      <InlineCreate label="New store" onCreate={async (name) => onChange(await onCreate(name))} />
     </div>
   );
 }

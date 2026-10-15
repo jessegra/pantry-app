@@ -16,17 +16,18 @@ const clearDb = () => Promise.all(repo.db.tables.map((t) => t.clear()));
 describe('first run', () => {
   beforeEach(clearDb);
 
-  it('offers start empty or sample data, then shows the app', async () => {
+  it('opens straight into the sample data (owner’s call, for testing)', async () => {
     renderAt('/');
-    await userEvent.click(await screen.findByRole('button', { name: 'Load sample data' }));
-    expect(await screen.findByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(await screen.findByRole('slider', { name: 'Black beans', exact: true } as never)).toBeInTheDocument();
+    expect(await repo.db.items.count()).toBe(11);
   });
 
-  it('start empty skips sample data', async () => {
+  it('an erased (blank) pantry points somewhere useful instead of a dead end', async () => {
+    await repo.startEmpty();
     renderAt('/');
-    await userEvent.click(await screen.findByRole('button', { name: 'Start empty' }));
-    await screen.findByRole('navigation', { name: 'Main' });
-    expect(await repo.db.items.count()).toBe(0);
+    expect(await screen.findByText('Your pantry is empty')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add items' })).toHaveAttribute('href', '/add');
+    expect(screen.getByRole('link', { name: 'Set up locations' })).toHaveAttribute('href', '/settings/locations');
   });
 });
 

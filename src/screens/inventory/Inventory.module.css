@@ -238,6 +238,24 @@
   text-decoration: none;
 }
 
+.blank {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 40px var(--gutter);
+}
+
+.blankTitle {
+  font-size: var(--text-title-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.noResultsText {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
 .noResults {
   padding: 32px var(--gutter);
   color: var(--color-text-muted);

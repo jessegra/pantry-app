@@ -80,46 +80,6 @@ export function DeleteButton({ label, onClick }: { label: string; onClick: () =>
   );
 }
 
-/** "Delete Shelf 1? 2 items will move to Unassigned." In-app, never window.confirm. */
-export function ConfirmDelete({
-  title,
-  consequence,
-  onConfirm,
-  onClose,
-  confirmLabel = 'Delete',
-}: {
-  title: string;
-  consequence: ReactNode;
-  onConfirm: () => Promise<void> | void;
-  onClose: () => void;
-  confirmLabel?: string;
-}) {
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title={title}
-      description={consequence}
-      actions={
-        <>
-          <Button variant="neutral" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={async () => {
-              await onConfirm();
-              onClose();
-            }}
-          >
-            {confirmLabel}
-          </Button>
-        </>
-      }
-    />
-  );
-}
-
 /** Name a new location, group or store. */
 export function NameSheet({
   title,

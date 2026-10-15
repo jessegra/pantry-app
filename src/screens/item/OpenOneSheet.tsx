@@ -74,7 +74,13 @@ export function OpenOneSheet({ parent, leftovers, onClose }: Props) {
         <input className={sheetStyles.textInput} value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <UnitPicker value={unit} options={withUnit(withUnit(LEFTOVER_UNITS, parent.unit), parent.packageSize?.unit)} onChange={setUnit} />
-      <LocationPicker value={location} onChange={setLocationId} locations={data?.locations ?? []} groups={data?.groups ?? []} />
+      <LocationPicker
+        value={location}
+        onChange={setLocationId}
+        locations={data?.locations ?? []}
+        groups={data?.groups ?? []}
+        onCreate={(name) => repo.addLocation(name)}
+      />
       <button
         type="button"
         role="checkbox"

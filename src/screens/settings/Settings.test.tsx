@@ -132,6 +132,14 @@ describe('settings: stores', () => {
     costco.focus();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     await waitFor(() => expect(handles()).toEqual(['Reorder Fred Meyer', "Reorder Trader Joe's", 'Reorder Costco']));
+    // The screen updates before the writes land; wait for the saved order too.
+    await waitFor(async () =>
+      expect((await repo.db.stores.toArray()).sort((a, b) => a.sortOrder - b.sortOrder).map((s) => s.id)).toEqual([
+        'st-fredmeyer',
+        'st-tj',
+        'st-costco',
+      ]),
+    );
     await userEvent.click(screen.getByRole('link', { name: /^List/ }));
     await screen.findByRole('heading', { level: 2, name: 'Costco' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([

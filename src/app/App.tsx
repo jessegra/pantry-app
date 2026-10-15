@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { TabBar } from './TabBar';
 import { useInitialized, useShoppingList } from '../data/hooks';
-import { FirstRunScreen } from '../screens/FirstRunScreen';
+import { repo } from '../data/repo';
 import { NagProvider } from './NagProvider';
 import styles from './App.module.css';
 import { InventoryScreen } from '../screens/inventory/InventoryScreen';
@@ -37,8 +38,10 @@ function StackLayout() {
 
 export function App() {
   const initialized = useInitialized();
-  if (initialized === undefined) return null; // first IndexedDB read: a few ms
-  if (!initialized) return <FirstRunScreen />;
+  useEffect(() => {
+    if (initialized === false) void repo.ensureInitialized();
+  }, [initialized]);
+  if (!initialized) return null; // first IndexedDB read, or loading sample data: a moment
   return (
     <NagProvider>
       <AppRoutes />

@@ -1,20 +1,33 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { BUILD, checkForUpdate } from '../../app/updates';
 import { useArchived } from '../../data/hooks';
 import { BackupError, repo, validateBackup, type Backup } from '../../data/repo';
-import { Button } from '../../ui/Button';
-import { ConfirmDelete } from './parts';
 import { plural } from '../../domain/text';
+import type { Item } from '../../domain/types';
+import { Button } from '../../ui/Button';
+import { ConfirmSheet } from '../../ui/ConfirmSheet';
+import { Icon } from '../../ui/Icon';
 import styles from './Settings.module.css';
 
 const day = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const stamp = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-/** Not in the mockups: archived items (recoverable, SPEC §3) and JSON backup (SPEC §5). */
+type Confirm =
+  | { kind: 'import'; backup: Backup }
+  | { kind: 'delete'; item: Item }
+  | { kind: 'sample' }
+  | { kind: 'erase' }
+  | null;
+
+/** Not in the mockups: archived items, backup, reset (for testing) and build info. */
 export function MoreSettings() {
   const archived = useArchived();
   const file = useRef<HTMLInputElement>(null);
-  const [pending, setPending] = useState<Backup | null>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [updateText, setUpdateText] = useState('');
 
   const exportData = async () => {
     const backup = await repo.exportData();
@@ -32,12 +45,26 @@ export function MoreSettings() {
     if (!f) return;
     setMessage(null);
     try {
-      setPending(validateBackup(JSON.parse(await f.text())));
+      setConfirm({ kind: 'import', backup: validateBackup(JSON.parse(await f.text())) });
     } catch (e) {
       setMessage({ kind: 'error', text: e instanceof BackupError ? e.message : 'That file couldn’t be read as a backup.' });
     } finally {
       if (file.current) file.current.value = '';
     }
+  };
+
+  const update = async () => {
+    setUpdateText('Checking…');
+    const r = await checkForUpdate();
+    setUpdateText(
+      r === 'updating'
+        ? 'A new version is downloading. The app will reload by itself.'
+        : r === 'current'
+          ? 'You have the latest version.'
+          : r === 'offline'
+            ? 'Couldn’t check: you seem to be offline.'
+            : 'Updates aren’t available in this browser.',
+    );
   };
 
   return (
@@ -59,6 +86,14 @@ export function MoreSettings() {
               <Button variant="secondary" size={44} onClick={() => void repo.restoreItem(item.id)}>
                 Restore
               </Button>
+              <button
+                type="button"
+                className={styles.delete}
+                aria-label={`Delete ${item.name} permanently`}
+                onClick={() => setConfirm({ kind: 'delete', item })}
+              >
+                <Icon name="trash" size={18} strokeWidth={1.8} />
+              </button>
             </div>
           ))}
         </div>
@@ -95,19 +130,79 @@ export function MoreSettings() {
         )}
       </section>
 
-      {pending && (
-        <ConfirmDelete
+      <section className={styles.section} aria-labelledby="reset-h">
+        <h2 id="reset-h" className={styles.sectionLabel}>
+          Reset data
+        </h2>
+        <p className={styles.footnote}>For trying things out. Export a backup first if you want to keep anything.</p>
+        <div className={styles.addButtons}>
+          <Button variant="neutral" onClick={() => setConfirm({ kind: 'sample' })}>
+            Reset to sample data
+          </Button>
+          <Button variant="neutral" onClick={() => setConfirm({ kind: 'erase' })}>
+            Erase everything
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.section} aria-labelledby="about-h">
+        <h2 id="about-h" className={styles.sectionLabel}>
+          About
+        </h2>
+        <p className={styles.footnote}>
+          Version {BUILD.version} · build {BUILD.sha} · {stamp(BUILD.time)}
+        </p>
+        <div className={styles.addOne}>
+          <Button variant="secondary" onClick={() => void update()}>
+            Check for updates
+          </Button>
+        </div>
+        {updateText && (
+          <p className={styles.footnote} role="status">
+            {updateText}
+          </p>
+        )}
+      </section>
+
+      {confirm?.kind === 'import' && (
+        <ConfirmSheet
           title="Replace everything with this backup?"
-          consequence={`Saved ${day(pending.exportedAt)}: ${plural(pending.tables.items.length, 'item')}, ${plural(
-            pending.tables.locations.length,
+          consequence={`Saved ${day(confirm.backup.exportedAt)}: ${plural(confirm.backup.tables.items.length, 'item')}, ${plural(
+            confirm.backup.tables.locations.length,
             'location',
-          )}, ${plural(pending.tables.stores.length, 'store')}. What's in the app now will be replaced.`}
+          )}, ${plural(confirm.backup.tables.stores.length, 'store')}. What's in the app now will be replaced.`}
           confirmLabel="Replace"
           onConfirm={async () => {
-            await repo.importData(pending);
+            await repo.importData(confirm.backup);
             setMessage({ kind: 'ok', text: 'Backup imported.' });
           }}
-          onClose={() => setPending(null)}
+          onClose={() => setConfirm(null)}
+        />
+      )}
+      {confirm?.kind === 'delete' && (
+        <ConfirmSheet
+          title={`Delete ${confirm.item.name} for good?`}
+          consequence="It can't be restored afterwards. Any leftovers made from it stay in your pantry."
+          onConfirm={() => repo.deleteItem(confirm.item.id)}
+          onClose={() => setConfirm(null)}
+        />
+      )}
+      {confirm?.kind === 'sample' && (
+        <ConfirmSheet
+          title="Reset to sample data?"
+          consequence="Everything in the app is replaced with the example kitchen."
+          confirmLabel="Reset"
+          onConfirm={() => repo.loadSampleData()}
+          onClose={() => setConfirm(null)}
+        />
+      )}
+      {confirm?.kind === 'erase' && (
+        <ConfirmSheet
+          title="Erase everything?"
+          consequence="All items, locations, stores and the shopping list are deleted. You start blank."
+          confirmLabel="Erase"
+          onConfirm={() => repo.startEmpty()}
+          onClose={() => setConfirm(null)}
         />
       )}
     </>

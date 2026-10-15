@@ -234,6 +234,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.dangerText {
+  color: var(--color-text-out);
+}
+
 .footer {
   display: flex;
   flex-direction: column;

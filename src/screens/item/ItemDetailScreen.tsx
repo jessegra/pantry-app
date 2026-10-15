@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { useNag } from '../../app/nag';
 import { useItem, useStores } from '../../data/hooks';
 import { repo } from '../../data/repo';
@@ -24,13 +25,14 @@ import { ItemSetupSheet } from './ItemSetupSheet';
 import { OpenOneSheet } from './OpenOneSheet';
 import styles from './ItemDetail.module.css';
 
-type OpenSheet = EditableField | 'setup' | 'openOne' | null;
+type OpenSheet = EditableField | 'setup' | 'openOne' | 'delete' | null;
 
 export function ItemDetailScreen() {
   const { id } = useParams();
   const data = useItem(id);
   const stores = useStores() ?? [];
   const nag = useNag();
+  const navigate = useNavigate();
   const [sheet, setSheet] = useState<OpenSheet>(null);
 
   if (data === undefined) return <TopBar />;
@@ -161,9 +163,14 @@ export function ItemDetailScreen() {
             <Button onClick={() => setSheet('openOne')}>Open one</Button>
           )}
           {archived ? (
-            <Button variant="secondary" onClick={async () => nag.report(item.id, await repo.restoreItem(item.id))}>
-              Restore
-            </Button>
+            <>
+              <Button variant="secondary" onClick={async () => nag.report(item.id, await repo.restoreItem(item.id))}>
+                Restore
+              </Button>
+              <Button variant="text" size={44} className={styles.dangerText} onClick={() => setSheet('delete')}>
+                Delete permanently
+              </Button>
+            </>
           ) : (
             <Button variant="text" size={44} onClick={() => void repo.archiveItem(item.id)}>
               Archive item
@@ -186,7 +193,18 @@ export function ItemDetailScreen() {
         />
       )}
       {sheet === 'openOne' && <OpenOneSheet parent={item} leftovers={leftovers} onClose={() => setSheet(null)} />}
-      {sheet && sheet !== 'setup' && sheet !== 'openOne' && (
+      {sheet === 'delete' && (
+        <ConfirmSheet
+          title={`Delete ${item.name} for good?`}
+          consequence="It can't be restored afterwards. Any leftovers made from it stay in your pantry."
+          onConfirm={async () => {
+            await repo.deleteItem(item.id);
+            navigate('/', { replace: true });
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet && sheet !== 'setup' && sheet !== 'openOne' && sheet !== 'delete' && (
         <FieldSheet item={item} field={sheet} onClose={() => setSheet(null)} />
       )}
     </>

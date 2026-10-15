@@ -106,6 +106,21 @@ export class Repo {
     return (await this.db.meta.get('initialized'))?.value === true;
   }
 
+  private initializing: Promise<void> | null = null;
+
+  /**
+   * First open: load the sample data (owner's call, for testing; "Erase everything"
+   * in Settings → More gives a blank start). Safe to call repeatedly or concurrently.
+   */
+  ensureInitialized(): Promise<void> {
+    this.initializing ??= (async () => {
+      if (!(await this.isInitialized())) await this.loadSampleData();
+    })().finally(() => {
+      this.initializing = null;
+    });
+    return this.initializing;
+  }
+
   /** Real use: no locations or stores yet, staples seeded. */
   async startEmpty(): Promise<void> {
     const { db } = this;
@@ -307,6 +322,27 @@ export class Repo {
       delete restored.archivedAt;
       await db.items.put(restored);
       return this.reconcile(itemId);
+    });
+  }
+
+  /**
+   * Permanently deletes an archived item (owner's call: archive first, then delete
+   * from there). Its list entries and activity go too; its leftovers stay, unlinked.
+   */
+  async deleteItem(itemId: ID): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.items, db.listEntries, db.activity, async () => {
+      const item = await db.items.get(itemId);
+      if (!item) return;
+      if (item.archivedAt == null) throw new Error('Archive an item before deleting it');
+      await db.listEntries.where('itemId').equals(itemId).delete();
+      await db.activity.where('itemId').equals(itemId).delete();
+      const t = this.now();
+      await db.items.where('parentId').equals(itemId).modify((l) => {
+        delete l.parentId;
+        l.updatedAt = t;
+      });
+      await db.items.delete(itemId);
     });
   }
 

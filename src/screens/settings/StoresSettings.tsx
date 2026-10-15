@@ -3,9 +3,10 @@ import { useStoreSettings, type StoreSettingsRow } from '../../data/hooks';
 import { repo } from '../../data/repo';
 import { moveItem } from '../../domain/layout';
 import { Button } from '../../ui/Button';
+import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { useDragReorder } from '../../ui/useDragReorder';
 import { useOptimisticOrder } from '../../ui/useOptimisticOrder';
-import { ConfirmDelete, DeleteButton, DragHandle, InlineName, NameSheet, ReorderHint } from './parts';
+import { DeleteButton, DragHandle, InlineName, NameSheet, ReorderHint } from './parts';
 import { plural } from '../../domain/text';
 import styles from './Settings.module.css';
 
@@ -78,7 +79,7 @@ export function StoresSettings() {
         <NameSheet title="Add store" placeholder="Safeway" onSave={(n) => repo.addStore(n)} onClose={() => setAdding(false)} />
       )}
       {deleting && (
-        <ConfirmDelete
+        <ConfirmSheet
           title={`Delete ${deleting.store.name}?`}
           consequence={deleteConsequence(deleting)}
           onConfirm={async () => {
