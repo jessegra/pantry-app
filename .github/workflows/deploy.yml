@@ -109,8 +109,12 @@ jobs:
           # manifest), so a visitor never gets a page whose files aren't there yet.
           # Old hashed assets are left in place for anyone mid-session on the last build.
           LATE='index.html sw.js registerSW.js manifest.webmanifest'
+          # This host only offers the legacy ssh-rsa host key, which OpenSSH no longer
+          # accepts by default; allow it for this connection only (the key is pinned above).
+          # cmd:fail-exit stops at the first error, so a failed cd can't upload elsewhere.
           lftp -c "
-            set sftp:connect-program 'ssh -a -x -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts';
+            set cmd:fail-exit yes;
+            set sftp:connect-program 'ssh -a -x -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa';
             set net:max-retries 2; set net:timeout 30;
             open -u $SFTP_USER --env-password -p $SFTP_PORT sftp://$SFTP_HOST;
             cd $REMOTE_DIR;
