@@ -81,9 +81,10 @@ jobs:
       SFTP_PORT: '2222'
       # Pinned so the upload only ever goes to this server (checked 2026-10-16).
       SFTP_HOST_KEY: '[ftp.jessegravenor.com]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCzkrwDdykdiE4DFMlNxiEk2hehBnYRJfuasxmy753TT/xaxrO1JtZg2ssEZA9BqJHVH0JujChOpV1ogTOk7LUMVo/C5mWc0JEQNPxKtWFXhDUOltxLpVArfn3PogugaIinSF4eBcZAa9Zzwgmw25BahZZtpMQm3oTLvGTHKLibmRf6mF0/z3kikEYGTTBi+52XxYc7Uj+mP+r7tL+eREDEZwMxbNxT7oPhUfgt8sfo8kmCFVZExv0HsZJb2NFZwi3zrgAYCgx1f6sU7U3uyxq3GeRzCsQI8cveKpBj4fpMHmqKCyL5K5qBY/ptZ/y2DCS0ygguHXDUsBOkl6NJ5ZgfqaHYAOi+3s4b9Xw3Z4GhfO2nB2JDTxdOE3jDcY/DHDQRFPS7bHiiZgWVYxdXbGepLvwhTfqMOnYo/9Y93Qx8mBQjOVKSfhxz+C2JNfLKemtXc0n+y1/J5xw6QbEqFxrRePtScssL+LKHGxgpYa52hcz1UkAMhscnz04R6/i7moyB8Us7uStfK1wX9nBMSDxbRFk5ahTzCV9jILETJDExWMFjz5gFZDVkWol5lkb0R/9Ve/suOq7o7jKlQHYShrcQUZm9gRbwaPhjErX649qslSibP7rZzdZlKwIbLm7GOEppJer72rXXh6s174oNN4sK0oqFCpwfKuMcrseXTVQIfw=='
-      # The subdomain's folder is public_html/pantry; where that sits depends on the
-      # directory the SFTP account starts in, so the first of these that exists is used.
-      REMOTE_DIRS: public_html/pantry pantry htdocs/pantry www/pantry
+      # The subdomain's folder is public_html/pantry. Where that sits depends on the
+      # SFTP account (this one is confined to the folder itself, i.e. "."), so each
+      # candidate is proven by uploading a probe file and fetching it from SITE_URL.
+      REMOTE_DIRS: . public_html/pantry pantry
       SITE_URL: https://pantry.jessegravenor.com
       SFTP_USER: ${{ secrets.PANTRY_SFTP_USER }}
       LFTP_PASSWORD: ${{ secrets.PANTRY_SFTP_PASSWORD }}
@@ -118,13 +119,20 @@ jobs:
             set sftp:connect-program 'ssh -a -x -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa';
             set net:max-retries 2; set net:timeout 30;
             open -u $SFTP_USER --env-password -p $SFTP_PORT sftp://$SFTP_HOST"
+          # Prove which folder is served at SITE_URL before uploading anything real.
+          PROBE="deploy-probe-$GITHUB_RUN_ID.txt"
+          echo "$GITHUB_SHA" > "$PROBE"
           REMOTE_DIR=''
           for d in $REMOTE_DIRS; do
-            if lftp -c "$CONNECT; cd $d"; then REMOTE_DIR=$d; break; fi
+            lftp -c "$CONNECT; cd $d; put $PROBE -o $PROBE" || continue
+            served=$(curl -sS --max-time 20 "$SITE_URL/$PROBE" || true)
+            lftp -c "$CONNECT; cd $d; rm $PROBE" || true
+            if [ "$served" = "$GITHUB_SHA" ]; then REMOTE_DIR=$d; break; fi
+            echo "$d is not the folder served at $SITE_URL"
           done
           if [ -z "$REMOTE_DIR" ]; then
-            echo "::error::None of [$REMOTE_DIRS] exists for this SFTP account. Where it starts, and what's there:"
-            lftp -c "$CONNECT; pwd; ls -la" 2>&1 || true
+            echo "::error::None of [$REMOTE_DIRS] is served at $SITE_URL. Where this SFTP account starts, and what's there:"
+            lftp -c "$CONNECT; pwd; ls" 2>&1 || true
             exit 1
           fi
           echo "Uploading to $REMOTE_DIR"
