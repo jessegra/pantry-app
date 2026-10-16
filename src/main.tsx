@@ -11,6 +11,7 @@ import { repo } from './data/repo';
 import { watchForUpdates } from './app/updates';
 
 void repo.pruneActivity();
+void repo.mergeDuplicates(); // repairs duplicates from older builds; no-op otherwise
 watchForUpdates();
 
 createRoot(document.getElementById('root')!).render(

@@ -7,6 +7,7 @@ import { matchItems } from '../../domain/quickAdd';
 import type { ID, Item } from '../../domain/types';
 import { Button, ButtonLink } from '../../ui/Button';
 import { ScreenBody } from '../../ui/Screen';
+import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import { EntrySheet } from './EntrySheet';
 import { ListRow } from './ListRow';
 import styles from './List.module.css';
@@ -25,18 +26,20 @@ export function ShoppingListScreen() {
   const suggestions = text.trim() ? matchItems(items, parsed.name).slice(0, 3) : [];
   const exact = items.find((i) => i.name.toLocaleLowerCase() === parsed.name.toLocaleLowerCase());
 
-  const add = async (item?: Item) => {
-    if (!parsed.name) return;
-    const { missing } = await repo.addListEntry({
-      name: item?.name ?? parsed.name,
-      quantity: parsed.quantity,
-      unit: parsed.unit,
-      itemId: item?.id,
+  const [, submit] = useSubmitOnce();
+  const add = (item?: Item) =>
+    submit(async () => {
+      if (!parsed.name) return;
+      const { missing } = await repo.addListEntry({
+        name: item?.name ?? parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        itemId: item?.id,
+      });
+      setText('');
+      // The nag, case 2: a not-set-up item was put on the list by hand.
+      if (item && missing.length) nag.askForMissing(item.id, missing);
     });
-    setText('');
-    // The nag, case 2: a not-set-up item was put on the list by hand.
-    if (item && missing.length) nag.askForMissing(item.id, missing);
-  };
 
   const openEntry = data?.groups.flatMap((g) => g.entries).find((e) => e.id === openId);
 
@@ -102,9 +105,7 @@ export function ShoppingListScreen() {
           </section>
         ))}
         {data && data.groups.length === 0 && (
-          <p className={styles.empty}>
-            Nothing on the list. Things you run low on show up here by themselves.
-          </p>
+          <p className={styles.empty}>Nothing on the list. Things you run low on show up here by themselves.</p>
         )}
         <div className={styles.footer}>
           {/* TODO export: placeholder per SPEC §4.5, wired to nothing yet. */}

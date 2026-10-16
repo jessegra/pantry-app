@@ -79,7 +79,7 @@ export function OpenOneSheet({ parent, leftovers, onClose }: Props) {
         onChange={setLocationId}
         locations={data?.locations ?? []}
         groups={data?.groups ?? []}
-        onCreate={(name) => repo.addLocation(name)}
+        onCreate={(name) => repo.addLocation(name, null, { anyGroup: true })}
       />
       <button
         type="button"

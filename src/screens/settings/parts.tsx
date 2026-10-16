@@ -5,6 +5,7 @@ import { Icon } from '../../ui/Icon';
 import { Sheet } from '../../ui/Sheet';
 import sheetStyles from '../../ui/Sheet.module.css';
 import type { useDragReorder } from '../../ui/useDragReorder';
+import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import styles from './Settings.module.css';
 
 /** Tap the name to rename it in place. Enter or leaving the field saves; Esc cancels. */
@@ -75,7 +76,13 @@ export function DragHandle({
   props: ReturnType<ReturnType<typeof useDragReorder>['handleProps']>;
 }) {
   return (
-    <button type="button" className={styles.handle} aria-label={`Reorder ${label}`} aria-describedby="reorder-hint" {...props}>
+    <button
+      type="button"
+      className={styles.handle}
+      aria-label={`Reorder ${label}`}
+      aria-describedby="reorder-hint"
+      {...props}
+    >
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
         {[6, 12, 18].flatMap((y) => [9, 15].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" />))}
       </svg>
@@ -114,11 +121,13 @@ export function NameSheet({
   children?: ReactNode;
 }) {
   const [name, setName] = useState('');
-  const save = async () => {
-    if (!name.trim()) return;
-    await onSave(name.trim());
-    onClose();
-  };
+  const [busy, submit] = useSubmitOnce();
+  const save = () =>
+    submit(async () => {
+      if (!name.trim()) return;
+      await onSave(name.trim());
+      onClose();
+    });
   return (
     <Sheet
       open
@@ -129,7 +138,7 @@ export function NameSheet({
           <Button variant="neutral" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => void save()} disabled={!name.trim()}>
+          <Button onClick={() => void save()} disabled={!name.trim() || busy}>
             Add
           </Button>
         </>

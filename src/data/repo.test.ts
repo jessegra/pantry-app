@@ -320,3 +320,45 @@ describe('stores', () => {
     expect(order).toEqual(['Safeway', "Trader Joe's", 'Costco', 'Fred Meyer']);
   });
 });
+
+describe('no duplicates', () => {
+  it('add* returns the existing record for the same name, even when called twice at once', async () => {
+    const [a, b] = await Promise.all([repo.addLocation('Garage'), repo.addLocation(' garage ')]);
+    expect(a).toBe(b);
+    expect(await repo.addLocation('REFRIGERATOR')).toBe('loc-fridge');
+    expect(await repo.addStore('costco')).toBe('st-costco');
+    expect(await repo.addGroup('Pantry')).toBe('grp-pantry');
+    expect(await repo.addCategory({ name: 'dairy', icon: 'generic', keywords: [] })).toBe('dairy');
+    expect(await db.stores.count()).toBe(3);
+  });
+
+  it('the same name may repeat in a different group, unless asked to match any group', async () => {
+    const garage = await repo.addGroup('Garage');
+    const garageShelf = await repo.addLocation('Shelf 1', garage);
+    expect(garageShelf).not.toBe('loc-shelf1');
+    expect(await repo.addLocation('shelf 1', null, { anyGroup: true })).toBe('loc-shelf1');
+  });
+
+  it('merges duplicates left by older builds, moving what pointed at them', async () => {
+    const t = Date.now();
+    await db.locations.bulkAdd([
+      { id: 'dup-cab', name: 'kitchen cabinet left ', groupId: null, sortOrder: 9, updatedAt: t },
+      { id: 'dup-g1', name: 'Garage', groupId: null, sortOrder: 10, updatedAt: t },
+      { id: 'dup-g2', name: 'Garage', groupId: null, sortOrder: 11, updatedAt: t },
+    ]);
+    await db.groups.add({ id: 'dup-pantry', name: 'PANTRY', sortOrder: 12, updatedAt: t });
+    await db.locations.add({ id: 'dup-shelf9', name: 'Shelf 9', groupId: 'dup-pantry', sortOrder: 0, updatedAt: t });
+    await db.stores.add({ id: 'dup-tj', name: "trader joe's", sortOrder: 5, updatedAt: t });
+    await db.items.update('it-oil', { locationId: 'dup-cab', secondaryStoreId: 'dup-tj' });
+    await db.listEntries.update('le-tortillas', { storeId: 'dup-tj' });
+
+    expect(await repo.mergeDuplicates()).toEqual({ groups: 1, locations: 2, stores: 1, categories: 0 });
+    expect(await item('it-oil')).toMatchObject({ locationId: 'loc-cab', preferredStoreId: 'st-tj' });
+    expect((await item('it-oil')).secondaryStoreId).toBeUndefined(); // was the same store twice
+    expect((await db.listEntries.get('le-tortillas'))!.storeId).toBe('st-tj');
+    expect((await db.locations.get('dup-shelf9'))!.groupId).toBe('grp-pantry');
+    expect((await db.locations.toArray()).filter((l) => l.name === 'Garage')).toHaveLength(1);
+    // Running it again changes nothing.
+    expect(await repo.mergeDuplicates()).toEqual({ groups: 0, locations: 0, stores: 0, categories: 0 });
+  });
+});

@@ -5,6 +5,7 @@ import { Chip } from './Chip';
 import { Icon } from './Icon';
 import sheetStyles from './Sheet.module.css';
 import styles from './pickers.module.css';
+import { useSubmitOnce } from './useSubmitOnce';
 
 interface ChoiceProps<T> {
   label?: string;
@@ -13,7 +14,12 @@ interface ChoiceProps<T> {
 }
 
 /** Unit chips plus an "Other" free-text entry. */
-export function UnitPicker({ label = 'Unit', value, options, onChange }: ChoiceProps<string | undefined> & { label?: string; options: string[] }) {
+export function UnitPicker({
+  label = 'Unit',
+  value,
+  options,
+  onChange,
+}: ChoiceProps<string | undefined> & { label?: string; options: string[] }) {
   const id = useId();
   const custom = value && !options.includes(value) ? value : '';
   const [other, setOther] = useState(custom);
@@ -107,12 +113,14 @@ export function LocationPicker({
 /** "New store" / "New location": type a name, Add, and it's created and selected. */
 function InlineCreate({ label, onCreate }: { label: string; onCreate: (name: string) => Promise<void> }) {
   const [draft, setDraft] = useState('');
-  const create = async () => {
-    const name = draft.trim();
-    if (!name) return;
-    await onCreate(name);
-    setDraft('');
-  };
+  const [busy, submit] = useSubmitOnce();
+  const create = () =>
+    submit(async () => {
+      const name = draft.trim();
+      if (!name) return;
+      await onCreate(name);
+      setDraft('');
+    });
   return (
     <div className={styles.inline}>
       <input
@@ -129,7 +137,7 @@ function InlineCreate({ label, onCreate }: { label: string; onCreate: (name: str
           }
         }}
       />
-      <button type="button" className={styles.inlineAdd} onClick={() => void create()} disabled={!draft.trim()}>
+      <button type="button" className={styles.inlineAdd} onClick={() => void create()} disabled={!draft.trim() || busy}>
         Add
       </button>
     </div>
@@ -202,7 +210,11 @@ export function Stepper({
         {label}
       </label>
       <div className={styles.stepper}>
-        <button type="button" aria-label={`Less ${label.toLowerCase()}`} onClick={() => set(Math.max(min, round(n - step)))}>
+        <button
+          type="button"
+          aria-label={`Less ${label.toLowerCase()}`}
+          onClick={() => set(Math.max(min, round(n - step)))}
+        >
           <Icon name="minus" size={20} strokeWidth={2.2} />
         </button>
         <span className={styles.stepperValue}>

@@ -9,6 +9,7 @@ import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { LocationPicker, Stepper, StorePicker, UnitPicker } from '../../ui/pickers';
 import { Sheet } from '../../ui/Sheet';
+import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import sheetStyles from '../../ui/Sheet.module.css';
 import styles from './QuickAdd.module.css';
 
@@ -47,7 +48,7 @@ export function CreateItemSheet({ initialName, presetLocationId, onCreated, onCl
   const [par, setPar] = useState<number | undefined>();
   const [amount, setAmount] = useState<number | undefined>();
   const [storeId, setStoreId] = useState<ID | undefined>();
-  const [busy, setBusy] = useState(false);
+  const [busy, submit] = useSubmitOnce();
 
   const locations = data?.locations ?? [];
   const exists = (id: ID | null | undefined) => !!id && locations.some((l) => l.id === id);
@@ -57,10 +58,9 @@ export function CreateItemSheet({ initialName, presetLocationId, onCreated, onCl
   const canSave = !!name.trim() && !busy;
   const plural = unit ? pluralUnit(unit, 2) : undefined;
 
-  const create = async (done: boolean) => {
-    if (!canSave) return;
-    setBusy(true);
-    try {
+  const create = (done: boolean) =>
+    submit(async () => {
+      if (!name.trim()) return;
       const withPar = details && par != null && par > 0;
       const { id, change } = await repo.createItem({
         name,
@@ -82,10 +82,7 @@ export function CreateItemSheet({ initialName, presetLocationId, onCreated, onCl
         }
       }
       onCreated({ name: name.trim(), locationId, done });
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   return (
     <Sheet
@@ -126,7 +123,7 @@ export function CreateItemSheet({ initialName, presetLocationId, onCreated, onCl
         onChange={setPicked}
         locations={locations}
         groups={data?.groups ?? []}
-        onCreate={(n) => repo.addLocation(n)}
+        onCreate={(n) => repo.addLocation(n, null, { anyGroup: true })}
       />
 
       <button

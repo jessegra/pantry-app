@@ -10,6 +10,7 @@ import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { Icon } from '../../ui/Icon';
 import { CATEGORY_ICONS } from '../../ui/icons';
 import { Sheet } from '../../ui/Sheet';
+import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import sheetStyles from '../../ui/Sheet.module.css';
 import styles from './Settings.module.css';
 
@@ -29,7 +30,12 @@ export function CategoriesSettings() {
         {list.map((c) => {
           const n = counts?.get(c.id) ?? 0;
           return (
-            <button key={c.id} type="button" className={styles.categoryRow} onClick={() => setEditing({ kind: 'edit', category: c })}>
+            <button
+              key={c.id}
+              type="button"
+              className={styles.categoryRow}
+              onClick={() => setEditing({ kind: 'edit', category: c })}
+            >
               <span className={styles.iconTile}>
                 <Icon path={CATEGORY_ICONS[c.icon]} size={18} strokeWidth={1.6} />
               </span>
@@ -64,19 +70,29 @@ export function CategoriesSettings() {
   );
 }
 
-function CategorySheet({ category, itemCount, onClose }: { category?: Category; itemCount: number; onClose: () => void }) {
+function CategorySheet({
+  category,
+  itemCount,
+  onClose,
+}: {
+  category?: Category;
+  itemCount: number;
+  onClose: () => void;
+}) {
   const [name, setName] = useState(category?.name ?? '');
   const [icon, setIcon] = useState<CategoryKey>(category?.icon ?? 'generic');
   const [words, setWords] = useState(category?.keywords.join(', ') ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const canDelete = category && category.id !== FALLBACK_CATEGORY;
 
-  const save = async () => {
-    const input = { name, icon, keywords: parseKeywords(words) };
-    if (category) await repo.updateCategory(category.id, input);
-    else await repo.addCategory(input);
-    onClose();
-  };
+  const [busy, submit] = useSubmitOnce();
+  const save = () =>
+    submit(async () => {
+      const input = { name, icon, keywords: parseKeywords(words) };
+      if (category) await repo.updateCategory(category.id, input);
+      else await repo.addCategory(input);
+      onClose();
+    });
 
   if (confirmDelete && category) {
     return (
@@ -101,7 +117,7 @@ function CategorySheet({ category, itemCount, onClose }: { category?: Category; 
           <Button variant="neutral" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => void save()} disabled={!name.trim()}>
+          <Button onClick={() => void save()} disabled={!name.trim() || busy}>
             Save
           </Button>
         </>
@@ -109,7 +125,12 @@ function CategorySheet({ category, itemCount, onClose }: { category?: Category; 
     >
       <label className={sheetStyles.field}>
         <span className={sheetStyles.label}>Name</span>
-        <input className={sheetStyles.textInput} value={name} onChange={(e) => setName(e.target.value)} data-autofocus={!category || undefined} />
+        <input
+          className={sheetStyles.textInput}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          data-autofocus={!category || undefined}
+        />
       </label>
       <div className={sheetStyles.field}>
         <span id="cat-icon" className={sheetStyles.label}>

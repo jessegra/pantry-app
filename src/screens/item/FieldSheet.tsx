@@ -229,7 +229,7 @@ function LocationSheet({ item, onClose, save }: SheetProps) {
         onChange={setLocationId}
         locations={data?.locations ?? []}
         groups={data?.groups ?? []}
-        onCreate={(name) => repo.addLocation(name)}
+        onCreate={(name) => repo.addLocation(name, null, { anyGroup: true })}
       />
     </EditSheet>
   );

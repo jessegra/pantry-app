@@ -16,6 +16,7 @@ import {
 import { defaultCategories, guessCategory } from '../domain/categories';
 import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
+import { findDuplicates, nameKey } from '../domain/text';
 import { houseOrder, tripOrder } from '../domain/trip';
 import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
 import {
@@ -199,16 +200,101 @@ export class Repo {
 
   // ---------- Categories (Settings → Categories) ----------
 
+  /** Adds a category, or returns the existing one with the same name (left unchanged). */
   async addCategory(input: { name: string; icon: CategoryKey; keywords: string[] }): Promise<ID> {
-    const id = this.id();
-    await this.db.categories.add({ id, name: input.name.trim(), icon: input.icon, keywords: input.keywords, updatedAt: this.now() });
-    return id;
+    const { db } = this;
+    return db.transaction('rw', db.categories, async () => {
+      const existing = (await db.categories.toArray()).find((c) => nameKey(c.name) === nameKey(input.name));
+      if (existing) return existing.id;
+      const id = this.id();
+      await db.categories.add({
+        id,
+        name: input.name.trim(),
+        icon: input.icon,
+        keywords: input.keywords,
+        updatedAt: this.now(),
+      });
+      return id;
+    });
   }
 
   async updateCategory(id: ID, patch: Partial<Pick<Category, 'name' | 'icon' | 'keywords'>>): Promise<void> {
     const changes = { ...patch, updatedAt: this.now() };
     if (patch.name != null) changes.name = patch.name.trim();
     await this.db.categories.update(id, changes);
+  }
+
+  /**
+   * Repairs same-named duplicates left by an older build that could create several
+   * at once (a double-tap on Add). Each set collapses into its first copy, and
+   * everything pointing at the others (items, list entries, locations in a group)
+   * moves across. Idempotent: run at startup; with nothing to merge it changes nothing.
+   */
+  async mergeDuplicates(): Promise<{ groups: number; locations: number; stores: number; categories: number }> {
+    const { db } = this;
+    const tables = [db.groups, db.locations, db.stores, db.categories, db.items, db.listEntries];
+    return db.transaction('rw', tables, async () => {
+      const t = this.now();
+      const bySort = <T extends { sortOrder: number }>(rows: T[]) =>
+        [...rows].sort((a, b) => a.sortOrder - b.sortOrder);
+      const counts = { groups: 0, locations: 0, stores: 0, categories: 0 };
+
+      // Groups first: their locations join the surviving group, after its own.
+      for (const { keep, merge } of findDuplicates(bySort(await db.groups.toArray()))) {
+        let next = (await db.locations.where('groupId').equals(keep.id).toArray()).length;
+        for (const dup of merge) {
+          for (const l of bySort(await db.locations.where('groupId').equals(dup.id).toArray())) {
+            await db.locations.update(l.id, { groupId: keep.id, sortOrder: next++, updatedAt: t });
+          }
+          await db.groups.delete(dup.id);
+          counts.groups++;
+        }
+      }
+
+      // Locations: same name within the same group.
+      for (const { keep, merge } of findDuplicates(bySort(await db.locations.toArray()), (l) => l.groupId ?? '')) {
+        for (const dup of merge) {
+          await db.items.where('locationId').equals(dup.id).modify({ locationId: keep.id, updatedAt: t });
+          await db.locations.delete(dup.id);
+          counts.locations++;
+        }
+      }
+
+      // Stores: items' preferred/secondary and list entries move across.
+      for (const { keep, merge } of findDuplicates(bySort(await db.stores.toArray()))) {
+        const dupIds = new Set(merge.map((s) => s.id));
+        await db.items.toCollection().modify((i) => {
+          const pref = i.preferredStoreId && dupIds.has(i.preferredStoreId);
+          const sec = i.secondaryStoreId && dupIds.has(i.secondaryStoreId);
+          if (!pref && !sec) return;
+          if (pref) i.preferredStoreId = keep.id;
+          if (sec) i.secondaryStoreId = keep.id;
+          if (i.secondaryStoreId === i.preferredStoreId) delete i.secondaryStoreId;
+          i.updatedAt = t;
+        });
+        for (const dup of merge) {
+          await db.listEntries.where('storeId').equals(dup.id).modify({ storeId: keep.id, updatedAt: t });
+          await db.stores.delete(dup.id);
+          counts.stores++;
+        }
+      }
+
+      // Categories: keep a built-in if one is in the set; words are combined.
+      const builtInFirst = (await db.categories.toArray()).sort(
+        (a, b) => Number(a.id.length > 20) - Number(b.id.length > 20) || a.updatedAt - b.updatedAt,
+      );
+      for (const { keep, merge } of findDuplicates(builtInFirst)) {
+        const words = new Set(keep.keywords);
+        for (const dup of merge) {
+          dup.keywords.forEach((w) => words.add(w));
+          await db.items.filter((i) => i.category === dup.id).modify({ category: keep.id, updatedAt: t });
+          await db.categories.delete(dup.id);
+          counts.categories++;
+        }
+        await db.categories.update(keep.id, { keywords: [...words], updatedAt: t });
+      }
+      return counts;
+    });
   }
 
   /** Its items move to Other. Other itself can't be deleted. */
@@ -272,7 +358,10 @@ export class Repo {
 
   /** Drops activity older than the ranking window. Run once at startup. */
   async pruneActivity(): Promise<number> {
-    return this.db.activity.where('at').below(this.now() - RECENT_WINDOW_MS).delete();
+    return this.db.activity
+      .where('at')
+      .below(this.now() - RECENT_WINDOW_MS)
+      .delete();
   }
 
   // ---------- Items ----------
@@ -377,10 +466,13 @@ export class Repo {
       await db.listEntries.where('itemId').equals(itemId).delete();
       await db.activity.where('itemId').equals(itemId).delete();
       const t = this.now();
-      await db.items.where('parentId').equals(itemId).modify((l) => {
-        delete l.parentId;
-        l.updatedAt = t;
-      });
+      await db.items
+        .where('parentId')
+        .equals(itemId)
+        .modify((l) => {
+          delete l.parentId;
+          l.updatedAt = t;
+        });
       await db.items.delete(itemId);
     });
   }
@@ -532,7 +624,11 @@ export class Repo {
   /** "Continue through the house": snapshot of set-up items by location, minus ones just logged. */
   async housePlan(exclude: Set<ID>) {
     const { db } = this;
-    const [groups, locations, items] = await Promise.all([db.groups.toArray(), db.locations.toArray(), db.items.toArray()]);
+    const [groups, locations, items] = await Promise.all([
+      db.groups.toArray(),
+      db.locations.toArray(),
+      db.items.toArray(),
+    ]);
     return houseOrder(buildInventory(groups, locations, items, []), exclude);
   }
 
@@ -566,9 +662,24 @@ export class Repo {
     return orders.length ? Math.max(...orders) + 1 : 0;
   }
 
-  async addLocation(name: string, groupId: ID | null = null): Promise<ID> {
+  /**
+   * Adds a location, or returns the existing one with the same name (case and spacing
+   * ignored). Within one group by default, so "Shelf 1" can exist in two groups;
+   * `anyGroup` matches across groups (a "New location" typed inside an item sheet).
+   * The check and the add share a transaction, so a double-tap can't make two.
+   */
+  async addLocation(name: string, groupId: ID | null = null, { anyGroup = false } = {}): Promise<ID> {
     const { db } = this;
     return db.transaction('rw', db.locations, db.groups, async () => {
+      const key = nameKey(name);
+      // In display order, so "any group" picks the one listed first in Settings.
+      const groupOrder = new Map((await db.groups.toArray()).map((g) => [g.id, g.sortOrder]));
+      const place = (l: Location) =>
+        l.groupId && groupOrder.has(l.groupId) ? [groupOrder.get(l.groupId)!, l.sortOrder] : [l.sortOrder, -1];
+      const existing = (await db.locations.toArray())
+        .sort((a, b) => place(a)[0] - place(b)[0] || place(a)[1] - place(b)[1])
+        .find((l) => nameKey(l.name) === key && (anyGroup || l.groupId === groupId));
+      if (existing) return existing.id;
       const id = this.id();
       const sortOrder = await this.nextSortOrder(groupId);
       await db.locations.add({ id, name: name.trim(), groupId, sortOrder, updatedAt: this.now() });
@@ -591,9 +702,12 @@ export class Repo {
     });
   }
 
+  /** Adds a group, or returns the existing one with the same name. */
   async addGroup(name: string): Promise<ID> {
     const { db } = this;
     return db.transaction('rw', db.locations, db.groups, async () => {
+      const existing = (await db.groups.toArray()).find((g) => nameKey(g.name) === nameKey(name));
+      if (existing) return existing.id;
       const id = this.id();
       const sortOrder = await this.nextSortOrder(null);
       await db.groups.add({ id, name: name.trim(), sortOrder, updatedAt: this.now() });
@@ -665,11 +779,15 @@ export class Repo {
 
   // ---------- Stores ----------
 
+  /** Adds a store, or returns the existing one with the same name. */
   async addStore(name: string): Promise<ID> {
     const { db } = this;
     return db.transaction('rw', db.stores, async () => {
+      const stores = await db.stores.toArray();
+      const existing = stores.find((s) => nameKey(s.name) === nameKey(name));
+      if (existing) return existing.id;
       const id = this.id();
-      const orders = (await db.stores.toArray()).map((s) => s.sortOrder);
+      const orders = stores.map((s) => s.sortOrder);
       const sortOrder = orders.length ? Math.max(...orders) + 1 : 0;
       await db.stores.add({ id, name: name.trim(), sortOrder, updatedAt: this.now() });
       return id;
@@ -740,7 +858,8 @@ export function validateBackup(data: unknown): Backup {
   for (const t of BACKUP_TABLES) {
     if (!Array.isArray(d.tables?.[t])) throw new BackupError(`The backup is missing its ${t}.`);
   }
-  const ok = (rows: unknown[]) => rows.every((r) => r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string');
+  const ok = (rows: unknown[]) =>
+    rows.every((r) => r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string');
   if (!BACKUP_TABLES.every((t) => ok(d.tables![t]))) throw new BackupError('The backup looks damaged.');
   const cats = d.tables!.categories;
   if (cats !== undefined && !(Array.isArray(cats) && ok(cats))) throw new BackupError('The backup looks damaged.');
