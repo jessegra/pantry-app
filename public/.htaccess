@@ -1,0 +1,26 @@
+# pantry.jessegravenor.com (Apache on Network Solutions). Ignored by GitHub Pages.
+# Every block is guarded with IfModule, so a missing module can't take the site down.
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# Single-page app: /list, /item/…, /settings/… are served by index.html.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Caching: hashed build files forever; the page, service worker and manifest
+# always revalidated, so a new version is picked up on the next visit.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/assets/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  <FilesMatch "^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest|workbox-.*\.js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
