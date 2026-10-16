@@ -120,11 +120,11 @@ jobs:
             open -u $SFTP_USER --env-password -p $SFTP_PORT sftp://$SFTP_HOST"
           REMOTE_DIR=''
           for d in $REMOTE_DIRS; do
-            if lftp -c "$CONNECT; cd $d" 2>/dev/null; then REMOTE_DIR=$d; break; fi
+            if lftp -c "$CONNECT; cd $d"; then REMOTE_DIR=$d; break; fi
           done
           if [ -z "$REMOTE_DIR" ]; then
-            echo "::error::None of [$REMOTE_DIRS] exists for this SFTP account. Its starting directory has:"
-            lftp -c "$CONNECT; cls -1 --classify" || true
+            echo "::error::None of [$REMOTE_DIRS] exists for this SFTP account. Where it starts, and what's there:"
+            lftp -c "$CONNECT; pwd; ls -la" 2>&1 || true
             exit 1
           fi
           echo "Uploading to $REMOTE_DIR"
