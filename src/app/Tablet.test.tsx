@@ -57,10 +57,21 @@ describe('tablet (two panes)', () => {
   it('an item opened from the List keeps the List on the left', async () => {
     renderAt('/list');
     await userEvent.click(await screen.findByRole('button', { name: /^Chicken thighs/ }));
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('link', { name: 'Open Chicken thighs in inventory' }));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('link', { name: 'Open Chicken thighs in inventory' }),
+    );
     expect(await within(details()).findByRole('heading', { level: 1, name: 'Chicken thighs' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Shopping list' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^List/ })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('a recipe opens beside the Recipes list', async () => {
+    renderAt('/recipes');
+    await userEvent.click(await screen.findByRole('link', { name: /Waffles/ }));
+    expect(await within(details()).findByRole('heading', { level: 1, name: 'Waffles' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Recipes' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('aria-current', 'page');
+    expect(within(details()).getByRole('link', { name: 'Close' })).toHaveAttribute('href', '/recipes');
   });
 
   it('a direct link to an item shows Inventory beside it', async () => {

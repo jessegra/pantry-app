@@ -1,0 +1,271 @@
+/* Recipes tab and recipe screen (docs/RECIPES_PLAN.md). No mockup: built from the
+   inventory and item-detail patterns. */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-input);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.search:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: var(--text-input);
+  color: var(--color-text);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 var(--gutter);
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--row-list);
+  padding: 10px var(--gutter);
+  border-bottom: 1px solid var(--color-border-row);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowName {
+  font-weight: var(--weight-semibold);
+}
+
+.rowMeta {
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-sm);
+  overflow-wrap: anywhere;
+}
+
+.row[data-readiness='ready'] .rowMeta {
+  color: var(--color-primary-hover);
+}
+
+.rowTags {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-text-disabled);
+}
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 40px var(--gutter);
+}
+
+.blankTitle {
+  font-size: var(--text-title-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.noResults {
+  padding: 32px var(--gutter);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Recipe screen */
+.topBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 4px) 8px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--tap);
+  padding: 0 8px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px var(--gutter) 16px;
+}
+
+.title {
+  font-size: var(--text-title-lg);
+  line-height: 1.2;
+  font-weight: var(--weight-semibold);
+}
+
+.summary {
+  margin: 0 var(--gutter) 16px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-low);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary[data-readiness='ready'] {
+  background: var(--color-primary-tint);
+}
+
+.summaryTitle {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-low);
+}
+
+.summary[data-readiness='ready'] .summaryTitle {
+  color: var(--color-primary-strong);
+}
+
+.summaryText {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.summaryAction {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.sectionLabel {
+  padding: 16px var(--gutter) 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.ingredients {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border-row);
+}
+
+.ingredient {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: var(--row-detail);
+  padding: 10px var(--gutter);
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+/* The status is always a word, never colour alone. */
+.mark {
+  flex: none;
+  width: 64px;
+  padding: 2px 0;
+  border-radius: var(--radius-pill);
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  background: var(--color-surface-input);
+  color: var(--color-text-secondary);
+}
+
+.mark[data-status='have'] {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-strong);
+}
+
+.mark[data-status='low'] {
+  background: var(--color-bg-low);
+  color: var(--color-text-low);
+}
+
+.mark[data-status='missing'] {
+  background: var(--color-bg);
+  color: var(--color-text-out);
+  box-shadow: inset 0 0 0 1px var(--color-text-out);
+}
+
+.ingText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.ingLink {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.inlineLink {
+  /* 44px-tall target without changing the line. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -14px 0;
+}
+
+.prose {
+  padding: 0 var(--gutter) 16px;
+  white-space: pre-line;
+  line-height: 1.5;
+}

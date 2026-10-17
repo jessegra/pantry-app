@@ -13,6 +13,7 @@ interface Tab {
 const TABS: Tab[] = [
   { to: '/', label: 'Inventory', icon: 'inventory', end: true },
   { to: '/list', label: 'List', icon: 'cart' },
+  { to: '/recipes', label: 'Recipes', icon: 'recipes' },
   { to: '/add', label: 'Add', icon: 'addCircle' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];

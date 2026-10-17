@@ -2,7 +2,18 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { defaultCategories } from '../domain/categories';
 import { installSyncHooks, type Tombstone } from './sync/hooks';
-import type { Category, ID, Item, ListEntry, Location, LocationGroup, Recipe, Staple, Store, Timestamp } from '../domain/types';
+import type {
+  Category,
+  ID,
+  Item,
+  ListEntry,
+  Location,
+  LocationGroup,
+  Recipe,
+  Staple,
+  Store,
+  Timestamp,
+} from '../domain/types';
 
 export interface MetaRow {
   key: string;

@@ -15,6 +15,8 @@ import { QuickAddScreen } from '../screens/add/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/list/ShoppingListScreen';
 import { JustShoppedScreen } from '../screens/shopped/JustShoppedScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { RecipeScreen } from '../screens/recipes/RecipeScreen';
+import { RecipesScreen } from '../screens/recipes/RecipesScreen';
 
 /** Top-level screens: content above the bottom tab bar. */
 function TabLayout() {
@@ -63,6 +65,7 @@ const topLevelRoutes = (
   <>
     <Route index element={<InventoryScreen />} />
     <Route path="list" element={<ShoppingListScreen />} />
+    <Route path="recipes" element={<RecipesScreen />} />
     <Route path="add" element={<QuickAddScreen />} />
     <Route path="settings" element={<Navigate to="/settings/locations" replace />} />
     <Route path="settings/:section" element={<SettingsScreen />} />
@@ -75,6 +78,7 @@ function PhoneRoutes() {
       <Route element={<TabLayout />}>{topLevelRoutes}</Route>
       <Route element={<StackLayout />}>
         <Route path="item/:id" element={<ItemDetailScreen />} />
+        <Route path="recipe/:id" element={<RecipeScreen />} />
         <Route path="shopped" element={<JustShoppedScreen />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -89,7 +93,8 @@ function PhoneRoutes() {
  */
 function WideRoutes() {
   const location = useLocation();
-  const isDetail = matchPath('/item/:id', location.pathname) !== null;
+  const isDetail =
+    matchPath('/item/:id', location.pathname) !== null || matchPath('/recipe/:id', location.pathname) !== null;
   useEffect(() => {
     if (!isDetail) rememberListLocation(location);
   }, [isDetail, location]);
@@ -114,6 +119,7 @@ function WideRoutes() {
       <section className={styles.detailPane} aria-label="Item details">
         <Routes>
           <Route path="item/:id" element={<ItemDetailScreen />} />
+          <Route path="recipe/:id" element={<RecipeScreen />} />
           <Route path="*" element={<SelectItem />} />
         </Routes>
       </section>

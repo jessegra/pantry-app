@@ -16,6 +16,7 @@ import {
 import { defaultCategories, guessCategory } from '../domain/categories';
 import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
+import { missingForShopping, pantryContext } from '../domain/recipeMatch';
 import { findDuplicates, nameKey } from '../domain/text';
 import { houseOrder, tripOrder } from '../domain/trip';
 import {
@@ -243,6 +244,32 @@ export class Repo {
       await db.recipes.bulkAdd(fresh);
       return fresh.length;
     });
+  }
+
+  /**
+   * A recipe's "Add missing to list": each missing ingredient once, skipping anything
+   * already on the list. Linked ones go under their item's store with a restocking
+   * quantity; unlinked ones by name, Unassigned. One transaction, so a double tap
+   * can't add things twice.
+   */
+  async addRecipeMissingToList(recipeId: ID): Promise<{ added: string[] }> {
+    const { db } = this;
+    return db.transaction(
+      'rw',
+      [db.recipes, db.items, db.staples, db.listEntries, db.activity, db.categories, db.tombstones],
+      async () => {
+        const recipe = await db.recipes.get(recipeId);
+        if (!recipe) return { added: [] };
+        const [items, staples, entries] = await Promise.all([
+          db.items.toArray(),
+          db.staples.toArray(),
+          db.listEntries.toArray(),
+        ]);
+        const toAdd = missingForShopping(recipe, pantryContext(items, staples), entries);
+        for (const a of toAdd) await this.addListEntry(a);
+        return { added: toAdd.map((a) => a.name) };
+      },
+    );
   }
 
   // ---------- Categories (Settings → Categories) ----------

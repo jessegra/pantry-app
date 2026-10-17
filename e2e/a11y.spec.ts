@@ -8,7 +8,11 @@ const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promis
   { name: 'inventory', path: './' },
   { name: 'item (configured)', path: 'item/it-blackbeans' },
   { name: 'item (not set up)', path: 'item/it-rice' },
-  { name: 'open one sheet', path: 'item/it-blackbeans', open: (p) => p.getByRole('button', { name: 'Open one' }).click() },
+  {
+    name: 'open one sheet',
+    path: 'item/it-blackbeans',
+    open: (p) => p.getByRole('button', { name: 'Open one' }).click(),
+  },
   { name: 'quick add', path: 'add' },
   {
     name: 'new item sheet',
@@ -20,6 +24,8 @@ const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promis
     },
   },
   { name: 'shopping list', path: 'list' },
+  { name: 'recipes', path: 'recipes' },
+  { name: 'recipe', path: 'recipe/rc-tacos' },
   { name: 'just shopped', path: 'shopped' },
   { name: 'settings: locations', path: 'settings/locations' },
   { name: 'settings: stores', path: 'settings/stores' },
@@ -35,7 +41,8 @@ const SIZES = [
 /** Interactive elements smaller than 44×44, except links inside running text. */
 async function smallTargets(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    const sel = 'button, a[href], input:not([type=hidden]), select, textarea, [role=slider], [role=checkbox], [role=radio]';
+    const sel =
+      'button, a[href], input:not([type=hidden]), select, textarea, [role=slider], [role=checkbox], [role=radio]';
     const out: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>(sel)) {
       const r = el.getBoundingClientRect();
@@ -45,7 +52,8 @@ async function smallTargets(page: Page): Promise<string[]> {
       // A dialog that isn't open, or content behind a modal, doesn't count.
       const modal = document.querySelector('dialog[open]');
       if (modal && !modal.contains(el)) continue;
-      const inText = el.tagName === 'A' && el.parentElement && /\S/.test(el.parentElement.textContent!.replace(el.textContent!, ''));
+      const inText =
+        el.tagName === 'A' && el.parentElement && /\S/.test(el.parentElement.textContent!.replace(el.textContent!, ''));
       // Inline text fields keep their own 44px rule via their row; native inputs inside a 44px+ wrapper are fine.
       const box = el.tagName === 'INPUT' && el.parentElement ? el.parentElement.getBoundingClientRect() : r;
       if (inText) continue;
@@ -77,7 +85,11 @@ for (const size of SIZES) {
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
           .analyze();
         const violations = axe.violations.map(
-          (v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(' ')).slice(0, 4).join(' | ')}`,
+          (v) =>
+            `${v.id}: ${v.help} → ${v.nodes
+              .map((n) => n.target.join(' '))
+              .slice(0, 4)
+              .join(' | ')}`,
         );
         expect(violations, 'axe violations').toEqual([]);
         expect(await smallTargets(page), 'targets under 44×44').toEqual([]);

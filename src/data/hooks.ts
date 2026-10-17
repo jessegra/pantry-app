@@ -3,8 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { buildInventory, locationLabel, type InventorySection } from '../domain/inventory';
 import { toRows, type Row } from '../domain/layout';
 import { rankRecent } from '../domain/quickAdd';
+import { checkRecipe, missingForShopping, pantryContext, type RecipeCheck } from '../domain/recipeMatch';
 import { groupListByStore, isSetUp, type StoreGroup } from '../domain/rules';
-import type { ID, Item, ListEntry, Location, LocationGroup, Store } from '../domain/types';
+import type { ID, Item, ListEntry, Location, LocationGroup, Store, Recipe } from '../domain/types';
 import { repo } from './repo';
 
 const { db } = repo;
@@ -161,7 +162,11 @@ export interface StoreSettingsRow {
 
 export function useStoreSettings(): StoreSettingsRow[] | undefined {
   return useLiveQuery(async () => {
-    const [stores, items, entries] = await Promise.all([db.stores.toArray(), db.items.toArray(), db.listEntries.toArray()]);
+    const [stores, items, entries] = await Promise.all([
+      db.stores.toArray(),
+      db.items.toArray(),
+      db.listEntries.toArray(),
+    ]);
     const live = items.filter((i) => i.archivedAt == null);
     return byOrder(stores).map((store) => ({
       store,
@@ -205,4 +210,63 @@ export function useLocations(): LocationsData | undefined {
 
 export function useStores(): Store[] | undefined {
   return useLiveQuery(async () => byOrder(await db.stores.toArray()), []);
+}
+
+// ---------- Recipes ----------
+
+export interface RecipeView {
+  recipe: Recipe;
+  check: RecipeCheck;
+}
+
+export interface RecipesData {
+  /** Alphabetical. */
+  recipes: RecipeView[];
+  /** Every tag in use, alphabetical. */
+  tags: string[];
+}
+
+/** All recipes, each checked against the pantry; updates as the pantry changes. */
+export function useRecipes(): RecipesData | undefined {
+  return useLiveQuery(async () => {
+    const [recipes, items, staples] = await Promise.all([
+      db.recipes.toArray(),
+      db.items.toArray(),
+      db.staples.toArray(),
+    ]);
+    const ctx = pantryContext(items, staples);
+    const views = recipes
+      .map((recipe) => ({ recipe, check: checkRecipe(recipe, ctx) }))
+      .sort((a, b) => a.recipe.name.localeCompare(b.recipe.name));
+    const tags = [...new Set(recipes.flatMap((r) => r.tags))].sort((a, b) => a.localeCompare(b));
+    return { recipes: views, tags };
+  }, []);
+}
+
+export interface RecipeData extends RecipeView {
+  /** For naming linked items and substitutes. */
+  itemsById: Map<ID, Item>;
+  /** What "Add missing to list" would add right now (nothing already listed). */
+  toAdd: Array<{ itemId?: ID; name: string }>;
+}
+
+/** null = no such recipe. */
+export function useRecipe(id: ID | undefined): RecipeData | null | undefined {
+  return useLiveQuery(async () => {
+    if (!id) return null;
+    const recipe = await db.recipes.get(id);
+    if (!recipe) return null;
+    const [items, staples, entries] = await Promise.all([
+      db.items.toArray(),
+      db.staples.toArray(),
+      db.listEntries.toArray(),
+    ]);
+    const ctx = pantryContext(items, staples);
+    return {
+      recipe,
+      check: checkRecipe(recipe, ctx),
+      itemsById: new Map(items.map((i) => [i.id, i])),
+      toAdd: missingForShopping(recipe, ctx, entries),
+    };
+  }, [id]);
 }

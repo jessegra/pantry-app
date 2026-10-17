@@ -111,30 +111,26 @@ describe('categories', () => {
   it('a v2 database (before categories) upgrades with the built-ins and keeps its items', async () => {
     const name = `test-${crypto.randomUUID()}`;
     const old = new Dexie(name);
-    old
-      .version(1)
-      .stores({
-        items: 'id, locationId, parentId, archivedAt',
-        locations: 'id, groupId',
-        groups: 'id',
-        stores: 'id',
-        listEntries: 'id, itemId, storeId',
-        staples: 'id',
-        meta: 'key',
-      });
+    old.version(1).stores({
+      items: 'id, locationId, parentId, archivedAt',
+      locations: 'id, groupId',
+      groups: 'id',
+      stores: 'id',
+      listEntries: 'id, itemId, storeId',
+      staples: 'id',
+      meta: 'key',
+    });
     old.version(2).stores({ activity: '++id, itemId, at' });
-    await old
-      .table('items')
-      .add({
-        id: 'x',
-        name: 'Milk',
-        category: 'dairy',
-        amount: 1,
-        locationId: null,
-        isLeftover: false,
-        createdAt: 1,
-        updatedAt: 1,
-      });
+    await old.table('items').add({
+      id: 'x',
+      name: 'Milk',
+      category: 'dairy',
+      amount: 1,
+      locationId: null,
+      isLeftover: false,
+      createdAt: 1,
+      updatedAt: 1,
+    });
     old.close();
     const upgraded = new PantryDB(name);
     expect(await upgraded.categories.get('dairy')).toMatchObject({ name: 'Dairy', icon: 'dairy' });
@@ -408,5 +404,29 @@ describe('recipes', () => {
     expect(waffles.ingredients.find((i) => i.name === 'flour')).toMatchObject({ match: 'staple' }); // no Flour item here
     expect(await real.addSampleRecipes()).toBe(0);
     expect(await real.db.recipes.count()).toBe(5);
+  });
+});
+
+describe('recipe: add missing to list', () => {
+  it('adds what is missing once, by item where linked, skipping what is already listed', async () => {
+    await repo.setAmount('it-blackbeans', 0);
+    await repo.setAmount('it-blackbeans-open', 0); // no leftover to fall back on
+    const { added } = await repo.addRecipeMissingToList('rc-tacos');
+    // Black beans is already on the list (it just ran out), and so is Tortillas.
+    expect(added).toEqual(['Shredded cheese', 'Onion']);
+    const cheese = (await db.listEntries.toArray()).find((e) => e.name === 'Shredded cheese')!;
+    expect(cheese).toMatchObject({ source: 'manual', storeId: null, quantity: 1 });
+    expect(await repo.addRecipeMissingToList('rc-tacos')).toEqual({ added: [] });
+  });
+
+  it('a linked missing item goes under its store', async () => {
+    await repo.setAmount('it-eggs', 0);
+    await db.listEntries.where('itemId').equals('it-eggs').delete(); // drop the auto entry, so the recipe adds it
+    const { added } = await repo.addRecipeMissingToList('rc-waffles');
+    expect(added).toEqual(['Baking powder', 'Eggs']);
+    expect(await db.listEntries.where('itemId').equals('it-eggs').first()).toMatchObject({
+      storeId: 'st-costco',
+      quantity: 12,
+    });
   });
 });

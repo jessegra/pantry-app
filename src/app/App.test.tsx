@@ -37,11 +37,11 @@ describe('app shell', () => {
     await repo.loadSampleData();
   });
 
-  it('shows the four tabs with Inventory current on /', async () => {
+  it('shows the five tabs with Inventory current on /', async () => {
     renderAt('/');
     const nav = await screen.findByRole('navigation', { name: 'Main' });
     const links = Array.from(nav.querySelectorAll('a')).map((a) => a.firstChild?.nextSibling?.textContent);
-    expect(links).toEqual(['Inventory', 'List', 'Add', 'Settings']);
+    expect(links).toEqual(['Inventory', 'List', 'Recipes', 'Add', 'Settings']);
     expect(screen.getByRole('link', { name: 'Inventory' })).toHaveAttribute('aria-current', 'page');
   });
 
