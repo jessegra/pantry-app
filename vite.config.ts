@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages serves the app from /<repo>/; CI sets BASE_PATH. Local dev uses '/'.
+// The app is served from the root of its subdomain. BASE_PATH can still move it under a sub-path.
 const base = process.env.BASE_PATH ?? '/';
 
 /** Shown in Settings → More so a phone can tell which build it's running. */

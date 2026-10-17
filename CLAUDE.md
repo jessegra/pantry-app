@@ -65,7 +65,7 @@ Decisions made after the mockups are logged in `docs/SPEC.md` §6 ("Decisions ma
 ## Hosting
 
 - **Live:** https://pantry.jessegravenor.com (Network Solutions shared hosting, Apache; free auto-renewing Let's Encrypt wildcard cert from the host). `.github/workflows/deploy.yml` builds with `BASE_PATH=/` and uploads over SFTP (port 2222, host key pinned, legacy `ssh-rsa` allowed for that host only) using the `PANTRY_SFTP_USER` / `PANTRY_SFTP_PASSWORD` repo secrets. The SFTP account is confined to the subdomain folder (`public_html/pantry`); the target folder is proven with a probe file before each upload. `public/.htaccess` does the SPA fallback and caching.
-- **Also published** to GitHub Pages (`/pantry-app/`) until data has been moved off it; remove the `deploy` job and Pages build then.
+- **GitHub Pages copy retired** (Oct 2026) after the owner moved their data over; the Pages site is unpublished and the workflow no longer builds it.
 - Data lives in IndexedDB per origin: changing the address means Export → Import (Settings → More).
 
 ## Commands (once scaffolded in Milestone 1)

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // End-to-end flows run against the production build (service worker included).
-// Honours BASE_PATH so the GitHub Pages sub-path build can be tested too.
+// Honours BASE_PATH, so a sub-path build can be tested too.
 // Specs use relative paths ('list', not '/list') so they resolve under it.
 const base = process.env.BASE_PATH ?? '/';
 

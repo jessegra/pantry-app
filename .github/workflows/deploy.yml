@@ -1,7 +1,6 @@
-# Test, build and publish on every push to main:
-#   - pantry.jessegravenor.com (Network Solutions, over SFTP), the real home,
-#     with the sync API (server/api) once its database secrets exist
-#   - jessegra.github.io/pantry-app (GitHub Pages), kept until data has moved over
+# Test, build and publish on every push to main to pantry.jessegravenor.com
+# (Network Solutions, over SFTP), with the sync API (server/api).
+# (The GitHub Pages copy was retired in Oct 2026 once data had moved over.)
 # Nothing is published unless lint, unit tests, the Playwright suite and the
 # server contract tests (PHP 8.4 + MySQL 5.7) pass.
 name: Deploy
@@ -13,11 +12,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: true
 
 jobs:
@@ -32,14 +29,15 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # Built for the root of its own subdomain.
       - run: npm run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
-      # Offline core loop, install criteria, accessibility audit, against the Pages build.
+          BASE_PATH: /
+      # Offline core loop, install criteria, accessibility audit, against that build.
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          BASE_PATH: /
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -48,20 +46,10 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
-      # Deep links (e.g. /list) on a first visit, before the service worker is installed.
-      - run: cp dist/index.html dist/404.html
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-      # The same app built for the root of its own subdomain.
-      - run: npm run build -- --outDir dist-root
-        env:
-          BASE_PATH: /
       - uses: actions/upload-artifact@v4
         with:
           name: site-root
-          path: dist-root
+          path: dist
           include-hidden-files: true # .htaccess
           retention-days: 7
 
@@ -142,16 +130,6 @@ jobs:
             playwright-report-sync
             test-results-sync
           retention-days: 7
-
-  deploy:
-    needs: [build, server]
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
 
   deploy-own-host:
     needs: [build, server]
