@@ -48,6 +48,8 @@ export default defineConfig({
         // App shell + fonts precached; SPA routes fall back to index.html offline.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: `${base}index.html`,
+        // The sync API is never the app page, even when opened directly.
+        navigateFallbackDenylist: [/\/api\//],
       },
     }),
   ],

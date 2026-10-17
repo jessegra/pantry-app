@@ -1,7 +1,9 @@
 # Test, build and publish on every push to main:
-#   - pantry.jessegravenor.com (Network Solutions, over SFTP), the real home
+#   - pantry.jessegravenor.com (Network Solutions, over SFTP), the real home,
+#     with the sync API (server/api) once its database secrets exist
 #   - jessegra.github.io/pantry-app (GitHub Pages), kept until data has moved over
-# Nothing is published unless lint, unit tests and the Playwright suite pass.
+# Nothing is published unless lint, unit tests, the Playwright suite and the
+# server contract tests (PHP 8.4 + MySQL 5.7) pass.
 name: Deploy
 
 on:
@@ -63,8 +65,58 @@ jobs:
           include-hidden-files: true # .htaccess
           retention-days: 7
 
+  # The sync API against real PHP 8.4 + MySQL 5.7 (what the host runs): syntax
+  # check, then the same contract tests the in-memory fake passes.
+  server:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: pantry_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      PANTRY_API_URL: http://127.0.0.1:8080/api
+      PANTRY_API_PASSWORD: ci-household-password
+      PANTRY_API_CONFIG: ${{ github.workspace }}/ci-config.php
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - name: PHP syntax
+        run: find server -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Test config
+        run: php scripts/write-api-config.php "$PANTRY_API_CONFIG"
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: pantry_test
+          DB_USER: root
+          DB_PASSWORD: root
+          HOUSEHOLD_PASSWORD: ci-household-password
+      - name: Start PHP
+        run: |
+          php -S 127.0.0.1:8080 server/api/index.php > php.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf "$PANTRY_API_URL/health" && break; sleep 1; done
+          echo; curl -sS "$PANTRY_API_URL/health"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Contract tests against PHP + MySQL
+        run: npx vitest run src/data/sync/contract.test.ts
+      - if: failure()
+        run: cat php.log
+
   deploy:
-    needs: build
+    needs: [build, server]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -74,7 +126,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   deploy-own-host:
-    needs: build
+    needs: [build, server]
     runs-on: ubuntu-latest
     env:
       SFTP_HOST: ftp.jessegravenor.com
@@ -88,8 +140,13 @@ jobs:
       SITE_URL: https://pantry.jessegravenor.com
       SFTP_USER: ${{ secrets.PANTRY_SFTP_USER }}
       LFTP_PASSWORD: ${{ secrets.PANTRY_SFTP_PASSWORD }}
+      DB_HOST: ${{ secrets.PANTRY_DB_HOST }}
+      DB_NAME: ${{ secrets.PANTRY_DB_NAME }}
+      DB_USER: ${{ secrets.PANTRY_DB_USER }}
+      DB_PASSWORD: ${{ secrets.PANTRY_DB_PASSWORD }}
+      HOUSEHOLD_PASSWORD: ${{ secrets.PANTRY_HOUSEHOLD_PASSWORD }}
     steps:
-      - name: Skip until the SFTP secrets are set
+      - name: Check which secrets are set
         id: ready
         run: |
           if [ -z "$SFTP_USER" ] || [ -z "$LFTP_PASSWORD" ]; then
@@ -98,6 +155,15 @@ jobs:
           else
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
+          # The sync API only goes up once the database and household password exist.
+          if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$HOUSEHOLD_PASSWORD" ]; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Database / household password secrets not all set; deploying the app without the sync API"
+            echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.ready.outputs.go == 'true'
+        uses: actions/checkout@v5
       - if: steps.ready.outputs.go == 'true'
         uses: actions/download-artifact@v4
         with:
@@ -105,13 +171,11 @@ jobs:
           path: site
       - if: steps.ready.outputs.go == 'true'
         name: Upload over SFTP
+        env:
+          WITH_API: ${{ steps.ready.outputs.api }}
         run: |
           sudo apt-get install -y -qq lftp > /dev/null
           mkdir -p ~/.ssh && echo "$SFTP_HOST_KEY" > ~/.ssh/known_hosts
-          # Assets first, then the files that point at them (page, service worker,
-          # manifest), so a visitor never gets a page whose files aren't there yet.
-          # Old hashed assets are left in place for anyone mid-session on the last build.
-          LATE='index.html sw.js registerSW.js manifest.webmanifest'
           # This host only offers the legacy ssh-rsa host key, which OpenSSH no longer
           # accepts by default; allow it for this connection only (the key is pinned above).
           # cmd:fail-exit stops at the first error, so a failed cd can't upload elsewhere.
@@ -119,6 +183,7 @@ jobs:
             set sftp:connect-program 'ssh -a -x -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa';
             set net:max-retries 2; set net:timeout 30;
             open -u $SFTP_USER --env-password -p $SFTP_PORT sftp://$SFTP_HOST"
+
           # Prove which folder is served at SITE_URL before uploading anything real.
           PROBE="deploy-probe-$GITHUB_RUN_ID.txt"
           echo "$GITHUB_SHA" > "$PROBE"
@@ -136,6 +201,21 @@ jobs:
             exit 1
           fi
           echo "Uploading to $REMOTE_DIR"
+
+          if [ "$WITH_API" = true ]; then
+            cp -r server/api site/api
+            rm -f site/api/config.example.php
+            # Keep the stored password hash when the household password hasn't changed;
+            # a fresh hash every deploy would sign every device out every time.
+            lftp -c "$CONNECT; cd $REMOTE_DIR; get api/config.php -o old-config.php" 2>/dev/null || true
+            php scripts/write-api-config.php site/api/config.php old-config.php
+            rm -f old-config.php
+          fi
+
+          # Assets first, then the files that point at them (page, service worker,
+          # manifest), so a visitor never gets a page whose files aren't there yet.
+          # Old hashed assets are left in place for anyone mid-session on the last build.
+          LATE='index.html sw.js registerSW.js manifest.webmanifest'
           lftp -c "
             $CONNECT;
             cd $REMOTE_DIR;
@@ -143,13 +223,21 @@ jobs:
             put site/.htaccess -o .htaccess;
             $(for f in $LATE; do printf 'put site/%s -o %s; ' "$f" "$f"; done)
           "
+          rm -f site/api/config.php
       - if: steps.ready.outputs.go == 'true'
         name: Check the live site
+        env:
+          WITH_API: ${{ steps.ready.outputs.api }}
         run: |
           fail=0
-          check() { code=$(curl -sS -o /tmp/body -w '%{http_code}' "$SITE_URL$1"); echo "$1 -> $code"; [ "$code" = 200 ] || fail=1; }
+          check() { code=$(curl -sS -o /tmp/body -w '%{http_code}' "$SITE_URL$1"); echo "$1 -> $code"; [ "$code" = "${2:-200}" ] || fail=1; }
           check /            && grep -q '<title>Pantry</title>' /tmp/body || fail=1
           check /list        && grep -q '<title>Pantry</title>' /tmp/body || fail=1  # deep link via .htaccess
           check /sw.js
           check /manifest.webmanifest
+          if [ "$WITH_API" = true ]; then
+            check /api/health && grep -q '"db":true' /tmp/body || { echo "API health:"; cat /tmp/body; fail=1; }
+            check /api/config.php 403   # never served
+            check /api/lib/db.php 403   # never served
+          fi
           exit $fail

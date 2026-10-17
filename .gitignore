@@ -7,3 +7,6 @@ test-results
 *.local
 .DS_Store
 dist-root
+server/api/config.php
+ci-config.php
+old-config.php

@@ -34,6 +34,7 @@ import {
   type Timestamp,
 } from '../domain/types';
 import { PantryDB, SCHEMA_VERSION } from './db';
+import { stripLocal } from './sync/hooks';
 
 /** What happened to the item's auto list entry after a change. */
 export interface ItemChange {
@@ -169,13 +170,13 @@ export class Repo {
       schemaVersion: SCHEMA_VERSION,
       exportedAt: this.now(),
       tables: {
-        items: await db.items.toArray(),
-        locations: await db.locations.toArray(),
-        groups: await db.groups.toArray(),
-        stores: await db.stores.toArray(),
-        listEntries: await db.listEntries.toArray(),
-        staples: await db.staples.toArray(),
-        categories: await db.categories.toArray(),
+        items: (await db.items.toArray()).map(stripLocal),
+        locations: (await db.locations.toArray()).map(stripLocal),
+        groups: (await db.groups.toArray()).map(stripLocal),
+        stores: (await db.stores.toArray()).map(stripLocal),
+        listEntries: (await db.listEntries.toArray()).map(stripLocal),
+        staples: (await db.staples.toArray()).map(stripLocal),
+        categories: (await db.categories.toArray()).map(stripLocal),
       },
     }));
   }

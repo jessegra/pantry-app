@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
 
-// jsdom has no modal <dialog> support.
-if (!HTMLDialogElement.prototype.showModal) {
+// jsdom has no modal <dialog> support. (Node-environment tests have no DOM at all.)
+if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.setAttribute('open', '');
   };

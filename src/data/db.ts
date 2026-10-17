@@ -1,6 +1,7 @@
 // Dexie (IndexedDB) schema. See SPEC §2. Only the repository imports this.
 import Dexie, { type EntityTable } from 'dexie';
 import { defaultCategories } from '../domain/categories';
+import { installSyncHooks, type Tombstone } from './sync/hooks';
 import type { Category, ID, Item, ListEntry, Location, LocationGroup, Staple, Store, Timestamp } from '../domain/types';
 
 export interface MetaRow {
@@ -25,6 +26,7 @@ export class PantryDB extends Dexie {
   meta!: EntityTable<MetaRow, 'key'>;
   activity!: EntityTable<ActivityRow, 'id'>;
   categories!: EntityTable<Category, 'id'>;
+  tombstones!: Dexie.Table<Tombstone, [string, string]>;
 
   constructor(name = 'pantry') {
     super(name);
@@ -49,8 +51,12 @@ export class PantryDB extends Dexie {
     this.version(3)
       .stores({ categories: 'id' })
       .upgrade((tx) => tx.table('categories').bulkPut(defaultCategories(Date.now())));
+    // v4 (sync): deletions waiting to be sent to the server.
+    this.version(4).stores({ tombstones: '[tbl+id]' });
+
+    installSyncHooks(this);
   }
 }
 
 /** Bump with every new Dexie version. Also written to meta for export/import. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
