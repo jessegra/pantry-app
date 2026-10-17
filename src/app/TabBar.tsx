@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useSyncStatus } from '../data/sync';
 import { Icon, type UiIconName } from '../ui/Icon';
 import styles from './TabBar.module.css';
 
@@ -22,17 +23,22 @@ interface TabBarProps {
 }
 
 export function TabBar({ listCount }: TabBarProps) {
+  // A dot on Settings only when sync needs the user (signed out, or failing).
+  // Being offline doesn't count: that fixes itself.
+  const syncPhase = useSyncStatus().phase;
+  const attention = syncPhase === 'signed-out' || syncPhase === 'error';
   return (
     <nav aria-label="Main" className={styles.bar}>
       {TABS.map((t) => {
         const badge = t.to === '/list' && listCount > 0 ? listCount : 0;
+        const dot = t.to === '/settings' && attention;
         return (
           <NavLink
             key={t.to}
             to={t.to}
             end={t.end}
             className={styles.tab}
-            aria-label={badge ? `${t.label}, ${badge} to get` : undefined}
+            aria-label={badge ? `${t.label}, ${badge} to get` : dot ? `${t.label}, sync needs attention` : undefined}
           >
             <Icon name={t.icon} size={22} strokeWidth={1.9} />
             {t.label}
@@ -41,6 +47,7 @@ export function TabBar({ listCount }: TabBarProps) {
                 {badge}
               </span>
             )}
+            {dot && <span className={styles.dot} aria-hidden="true" />}
           </NavLink>
         );
       })}

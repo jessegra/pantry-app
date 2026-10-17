@@ -21,7 +21,8 @@ const renderAt = (path: string) =>
   );
 
 const handles = () => screen.getAllByRole('button', { name: /^Reorder / }).map((b) => b.getAttribute('aria-label'));
-const layoutIds = async () => (await repo.currentLayout()).map((n) => (n.kind === 'group' ? `[${n.id}: ${n.locationIds.join(' ')}]` : n.id));
+const layoutIds = async () =>
+  (await repo.currentLayout()).map((n) => (n.kind === 'group' ? `[${n.id}: ${n.locationIds.join(' ')}]` : n.id));
 
 describe('settings: locations', () => {
   it('lists locations and groups in order, with counts and a fixed Unassigned row', async () => {
@@ -70,7 +71,15 @@ describe('settings: locations', () => {
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await sheetClosed();
     await waitFor(async () => expect((await layoutIds()).includes('shelf1')).toBe(false));
-    expect(await layoutIds()).toEqual(['loc-fridge', 'loc-drawer', 'loc-freeze', 'loc-shelf1', 'loc-shelf2', 'loc-floor', 'loc-cab']);
+    expect(await layoutIds()).toEqual([
+      'loc-fridge',
+      'loc-drawer',
+      'loc-freeze',
+      'loc-shelf1',
+      'loc-shelf2',
+      'loc-floor',
+      'loc-cab',
+    ]);
   });
 
   it('arrow keys on a handle reorder, and Inventory follows', async () => {
@@ -79,7 +88,12 @@ describe('settings: locations', () => {
     cab.focus();
     await userEvent.keyboard('{ArrowUp}'); // into the Pantry group, after Floor bin
     await waitFor(async () =>
-      expect(await layoutIds()).toEqual(['loc-fridge', 'loc-drawer', 'loc-freeze', '[grp-pantry: loc-shelf1 loc-shelf2 loc-floor loc-cab]']),
+      expect(await layoutIds()).toEqual([
+        'loc-fridge',
+        'loc-drawer',
+        'loc-freeze',
+        '[grp-pantry: loc-shelf1 loc-shelf2 loc-floor loc-cab]',
+      ]),
     );
     expect(await screen.findByText('Moved Kitchen Cabinet Left to position 8 of 8')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'Inventory' }));

@@ -77,7 +77,12 @@ export function StoresSettings() {
       </p>
 
       {adding && (
-        <NameSheet title="Add store" placeholder="Safeway" onSave={(n) => repo.addStore(n)} onClose={() => setAdding(false)} />
+        <NameSheet
+          title="Add store"
+          placeholder="Safeway"
+          onSave={(n) => repo.addStore(n)}
+          onClose={() => setAdding(false)}
+        />
       )}
       {deleting && (
         <ConfirmSheet

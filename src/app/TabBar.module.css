@@ -71,3 +71,15 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Settings: sync needs attention. */
+.dot {
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 8px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-bar-low);
+  box-shadow: 0 0 0 2px var(--color-bg);
+}

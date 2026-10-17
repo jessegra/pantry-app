@@ -340,3 +340,39 @@
   align-self: flex-start;
   color: var(--color-text-out);
 }
+/* Sync (Settings → More) */
+.syncBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 var(--gutter) 16px;
+}
+
+.syncStatus {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.syncStatus[data-phase='offline'],
+.syncStatus[data-phase='error'] {
+  color: var(--color-text-low);
+}
+
+.footnoteTight {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.addButtons[data-flush='true'] {
+  padding: 0;
+}
+
+.error[data-flush='true'] {
+  margin: 0;
+}
+
+.textLeft {
+  align-self: flex-start;
+  padding-left: 0;
+}

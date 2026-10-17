@@ -27,7 +27,7 @@ function phone(): Phone {
 async function firstPhone(): Promise<Phone> {
   const p = phone();
   await p.repo.loadSampleData();
-  expect(await p.sync.signIn(PASSWORD, 'Phone A')).toEqual({ serverEmpty: true });
+  expect(await p.sync.signIn(PASSWORD, 'Phone A')).toEqual({ serverEmpty: true, resumed: false });
   await p.sync.startWithThisDevice();
   return p;
 }
@@ -37,7 +37,7 @@ async function secondPhone(): Promise<Phone> {
   const p = phone();
   await p.repo.loadSampleData(); // its own sample data, to be replaced
   await p.repo.addStore('Only on phone B');
-  expect(await p.sync.signIn(PASSWORD, 'Phone B')).toEqual({ serverEmpty: false });
+  expect(await p.sync.signIn(PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: false });
   await p.sync.startWithServerData();
   return p;
 }
@@ -172,6 +172,27 @@ describe('signing out', () => {
     expect(b.sync.getStatus().phase).toBe('signed-out');
     expect(b.sync.getStatus().pending).toBeGreaterThan(0); // the edit (and the list entry it added) wait
     expect((await item(b, 'it-milk'))!.amount).toBe(0);
+
+    // Signing in again resumes: nothing replaced, and the waiting change goes up.
+    expect(await b.sync.signIn(PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: true });
+    expect(b.sync.getStatus()).toMatchObject({ phase: 'idle', pending: 0 });
+    expect((await item(b, 'it-milk'))!.amount).toBe(0);
+    expect(server.get('items', 'it-milk')!.data).toMatchObject({ amount: 0 });
+    // And it survives a reload while signed out.
+    await b.sync.signOutEverywhere();
+    await b.repo.setAmount('it-eggs', 1);
+    const reloaded = new SyncEngine(b.db, server);
+    expect((await reloaded.load()).phase).toBe('disconnected');
+  });
+
+  it('a signed-out phone reloads as signed out, not as a new phone', async () => {
+    await firstPhone();
+    const b = await secondPhone();
+    const other = (await server.login(PASSWORD, 'x')).token;
+    await server.logoutAll(other);
+    await b.sync.syncNow();
+    const reloaded = new SyncEngine(b.db, server);
+    expect(await reloaded.load()).toMatchObject({ phase: 'signed-out' });
   });
 
   it('Reset / Erase / Import sign this device out instead of uploading the replacement', async () => {

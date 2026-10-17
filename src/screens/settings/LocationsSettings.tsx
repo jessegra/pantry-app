@@ -20,9 +20,7 @@ export function LocationsSettings() {
   const data = useLocationSettings();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [announce, setAnnounce] = useState('');
-  const [rows, showOrder] = useOptimisticOrder(data?.rows ?? [], (r) =>
-    r.row.kind === 'location' ? `:` : r.row.id,
-  );
+  const [rows, showOrder] = useOptimisticOrder(data?.rows ?? [], (r) => (r.row.kind === 'location' ? `:` : r.row.id));
 
   const save = async (next: Row[], movedId: ID) => {
     const byId = new Map(rows.map((r) => [r.row.id, r]));
@@ -67,14 +65,19 @@ export function LocationsSettings() {
                 <InlineName
                   value={r.name}
                   className={isGroup ? styles.groupName : undefined}
-                  onSave={(name) => void (isGroup ? repo.renameGroup(r.row.id, name) : repo.renameLocation(r.row.id, name))}
+                  onSave={(name) =>
+                    void (isGroup ? repo.renameGroup(r.row.id, name) : repo.renameLocation(r.row.id, name))
+                  }
                 />
                 {isGroup ? (
                   <span className={styles.meta}>group</span>
                 ) : (
                   <span className={styles.meta}>{r.itemCount ? plural(r.itemCount, 'item') : 'Empty'}</span>
                 )}
-                <DeleteButton label={isGroup ? `group ${r.name}` : r.name} onClick={() => setSheet({ kind: 'delete', target: r })} />
+                <DeleteButton
+                  label={isGroup ? `group ${r.name}` : r.name}
+                  onClick={() => setSheet({ kind: 'delete', target: r })}
+                />
               </div>
             </div>
           );
@@ -100,9 +103,7 @@ export function LocationsSettings() {
         Drag to reorder. Tap a name to rename. Deleting a location moves its items to Unassigned.
       </p>
 
-      {sheet?.kind === 'addLocation' && (
-        <AddLocationSheet groups={groups} onClose={() => setSheet(null)} />
-      )}
+      {sheet?.kind === 'addLocation' && <AddLocationSheet groups={groups} onClose={() => setSheet(null)} />}
       {sheet?.kind === 'addGroup' && (
         <NameSheet
           title="Add group"
@@ -113,7 +114,11 @@ export function LocationsSettings() {
       )}
       {sheet?.kind === 'delete' && (
         <ConfirmSheet
-          title={sheet.target.row.kind === 'group' ? `Delete the ${sheet.target.name} group?` : `Delete ${sheet.target.name}?`}
+          title={
+            sheet.target.row.kind === 'group'
+              ? `Delete the ${sheet.target.name} group?`
+              : `Delete ${sheet.target.name}?`
+          }
           consequence={
             sheet.target.row.kind === 'group'
               ? sheet.target.childCount

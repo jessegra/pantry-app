@@ -54,7 +54,9 @@ describe('adding never makes duplicates', () => {
     // Typing an existing name (any case) selects it rather than making a copy.
     fireEvent.change(input, { target: { value: '  refrigerator ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    await waitFor(() => expect(within(sheet).getByRole('radio', { name: 'Refrigerator' })).toHaveAttribute('aria-checked', 'true'));
+    await waitFor(() =>
+      expect(within(sheet).getByRole('radio', { name: 'Refrigerator' })).toHaveAttribute('aria-checked', 'true'),
+    );
     expect(await repo.db.locations.count()).toBe(8);
   });
 

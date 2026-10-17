@@ -11,6 +11,7 @@ const PUSH_BATCH = 200;
 const PULL_BATCH = 1000;
 const SYNC_DEBOUNCE_MS = 2000;
 const SYNC_INTERVAL_MS = 60_000;
+const SIGNED_OUT_MESSAGE = 'This device was signed out. Sign in again to keep syncing; nothing on it is lost.';
 
 /** Persisted in the meta table (cleared by Reset / Erase / Import, which signs the device out). */
 interface SyncState {
@@ -93,11 +94,11 @@ export class SyncEngine {
   async load(): Promise<SyncStatus> {
     const state = await this.readState();
     this.set({
-      phase: state ? 'idle' : 'disconnected',
+      phase: !state ? 'disconnected' : state.token ? 'idle' : 'signed-out',
       lastSyncAt: state?.lastSyncAt,
       device: state?.device,
       pending: state ? await this.pendingCount() : 0,
-      message: undefined,
+      message: state && !state.token ? SIGNED_OUT_MESSAGE : undefined,
     });
     return this.status;
   }
@@ -108,10 +109,19 @@ export class SyncEngine {
    * Step 1: check the household password. Nothing changes on this device yet; the
    * caller then picks startWithThisDevice (server empty) or startWithServerData.
    */
-  async signIn(password: string, device: string): Promise<{ serverEmpty: boolean }> {
+  async signIn(password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+    const previous = await this.readState();
     const { token, serverEmpty } = await this.api.login(password, device);
+    if (previous) {
+      // Signed out (password changed, or "sign out everywhere"): pick up where it
+      // left off. Its place in the change stream and its unsent changes are kept.
+      await this.writeState({ ...previous, token });
+      this.set({ phase: 'idle', message: undefined });
+      await this.syncNow();
+      return { serverEmpty, resumed: true };
+    }
     this.pending = { token, device, serverEmpty };
-    return { serverEmpty };
+    return { serverEmpty, resumed: false };
   }
 
   /** First device: everything here goes up to the (empty) server. */
@@ -170,7 +180,7 @@ export class SyncEngine {
   /** This device only. Its data stays; it just stops syncing. */
   async signOut(): Promise<void> {
     const state = await this.readState();
-    if (state) await this.api.logout(state.token).catch(() => {});
+    if (state?.token) await this.api.logout(state.token).catch(() => {});
     await this.writeState(undefined);
     this.set({ phase: 'disconnected', pending: 0, lastSyncAt: undefined, device: undefined, message: undefined });
   }
@@ -178,7 +188,7 @@ export class SyncEngine {
   /** Every device (a lost phone). This one signs out too. */
   async signOutEverywhere(): Promise<void> {
     const state = await this.readState();
-    if (state) await this.api.logoutAll(state.token);
+    if (state?.token) await this.api.logoutAll(state.token);
     await this.writeState(undefined);
     this.set({ phase: 'disconnected', pending: 0, lastSyncAt: undefined, device: undefined, message: undefined });
   }
@@ -210,6 +220,10 @@ export class SyncEngine {
         this.set({ phase: 'disconnected' });
       return;
     }
+    if (!state.token) {
+      this.set({ phase: 'signed-out', pending: await this.pendingCount(), message: SIGNED_OUT_MESSAGE });
+      return;
+    }
     this.set({ phase: 'syncing', message: undefined });
     try {
       await this.push(state.token);
@@ -222,12 +236,9 @@ export class SyncEngine {
       if (e instanceof SyncError && e.kind === 'offline') {
         this.set({ phase: 'offline', pending, message: undefined });
       } else if (e instanceof SyncError && e.kind === 'signed-out') {
-        await this.writeState(undefined);
-        this.set({
-          phase: 'signed-out',
-          pending,
-          message: 'This device was signed out. Sign in again to keep syncing.',
-        });
+        // Keep the cursor and unsent changes; only the token is gone.
+        await this.writeState({ ...state, token: '' });
+        this.set({ phase: 'signed-out', pending, message: SIGNED_OUT_MESSAGE });
       } else {
         this.set({ phase: 'error', pending, message: e instanceof Error ? e.message : String(e) });
       }

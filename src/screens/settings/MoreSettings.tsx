@@ -8,18 +8,18 @@ import type { Item } from '../../domain/types';
 import { Button } from '../../ui/Button';
 import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { Icon } from '../../ui/Icon';
+import { getSync, useSyncStatus } from '../../data/sync';
+import { downloadBackup } from './downloadBackup';
+import { SyncSection } from './SyncSection';
 import styles from './Settings.module.css';
 
-const day = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const day = (t: number) =>
+  new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const stamp = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 type Confirm =
-  | { kind: 'import'; backup: Backup }
-  | { kind: 'delete'; item: Item }
-  | { kind: 'sample' }
-  | { kind: 'erase' }
-  | null;
+  { kind: 'import'; backup: Backup } | { kind: 'delete'; item: Item } | { kind: 'sample' } | { kind: 'erase' } | null;
 
 /** Not in the mockups: archived items, backup, reset (for testing) and build info. */
 export function MoreSettings() {
@@ -29,16 +29,17 @@ export function MoreSettings() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [updateText, setUpdateText] = useState('');
 
-  const exportData = async () => {
-    const backup = await repo.exportData();
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pantry-backup-${new Date(backup.exportedAt).toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setMessage({ kind: 'ok', text: `Saved ${a.download}.` });
+  const sync = useSyncStatus();
+  const syncing = sync.phase !== 'disconnected';
+  const SIGNS_OUT =
+    ' This device will also stop syncing (sign in again afterwards), so the shared copy isn’t replaced.';
+
+  const exportData = async () => setMessage({ kind: 'ok', text: `Saved ${await downloadBackup()}.` });
+
+  /** Reset, Erase and Import replace this device's data: never push that to the shared copy. */
+  const replaceLocal = async (work: () => Promise<void>) => {
+    if (syncing) await getSync().signOut();
+    await work();
   };
 
   const pick = async (f: File | undefined) => {
@@ -47,7 +48,10 @@ export function MoreSettings() {
     try {
       setConfirm({ kind: 'import', backup: validateBackup(JSON.parse(await f.text())) });
     } catch (e) {
-      setMessage({ kind: 'error', text: e instanceof BackupError ? e.message : 'That file couldn’t be read as a backup.' });
+      setMessage({
+        kind: 'error',
+        text: e instanceof BackupError ? e.message : 'That file couldn’t be read as a backup.',
+      });
     } finally {
       if (file.current) file.current.value = '';
     }
@@ -69,6 +73,8 @@ export function MoreSettings() {
 
   return (
     <>
+      <SyncSection />
+
       <section className={styles.section} aria-labelledby="archived-h">
         <h2 id="archived-h" className={styles.sectionLabel}>
           Archived items
@@ -104,7 +110,9 @@ export function MoreSettings() {
           Backup
         </h2>
         <p className={styles.footnote}>
-          Everything lives on this device. Save a backup file now and then, and import it on a new phone.
+          {syncing
+            ? 'Sync keeps a copy on the server too. A backup file is still handy before big changes.'
+            : 'Everything lives on this device. Save a backup file now and then, and import it on a new phone.'}
         </p>
         <div className={styles.addButtons}>
           <Button variant="secondary" onClick={() => void exportData()}>
@@ -124,7 +132,10 @@ export function MoreSettings() {
           onChange={(e) => void pick(e.target.files?.[0])}
         />
         {message && (
-          <p className={message.kind === 'error' ? styles.error : styles.ok} role={message.kind === 'error' ? 'alert' : 'status'}>
+          <p
+            className={message.kind === 'error' ? styles.error : styles.ok}
+            role={message.kind === 'error' ? 'alert' : 'status'}
+          >
             {message.text}
           </p>
         )}
@@ -170,10 +181,10 @@ export function MoreSettings() {
           consequence={`Saved ${day(confirm.backup.exportedAt)}: ${plural(confirm.backup.tables.items.length, 'item')}, ${plural(
             confirm.backup.tables.locations.length,
             'location',
-          )}, ${plural(confirm.backup.tables.stores.length, 'store')}. What's in the app now will be replaced.`}
+          )}, ${plural(confirm.backup.tables.stores.length, 'store')}. What's in the app now will be replaced.${syncing ? SIGNS_OUT : ''}`}
           confirmLabel="Replace"
           onConfirm={async () => {
-            await repo.importData(confirm.backup);
+            await replaceLocal(() => repo.importData(confirm.backup));
             setMessage({ kind: 'ok', text: 'Backup imported.' });
           }}
           onClose={() => setConfirm(null)}
@@ -190,18 +201,18 @@ export function MoreSettings() {
       {confirm?.kind === 'sample' && (
         <ConfirmSheet
           title="Reset to sample data?"
-          consequence="Everything in the app is replaced with the example kitchen."
+          consequence={`Everything in the app is replaced with the example kitchen.${syncing ? SIGNS_OUT : ''}`}
           confirmLabel="Reset"
-          onConfirm={() => repo.loadSampleData()}
+          onConfirm={() => replaceLocal(() => repo.loadSampleData())}
           onClose={() => setConfirm(null)}
         />
       )}
       {confirm?.kind === 'erase' && (
         <ConfirmSheet
           title="Erase everything?"
-          consequence="All items, locations, stores and the shopping list are deleted. You start blank."
+          consequence={`All items, locations, stores and the shopping list are deleted. You start blank.${syncing ? SIGNS_OUT : ''}`}
           confirmLabel="Erase"
-          onConfirm={() => repo.startEmpty()}
+          onConfirm={() => replaceLocal(() => repo.startEmpty())}
           onClose={() => setConfirm(null)}
         />
       )}
