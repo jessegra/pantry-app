@@ -1,5 +1,7 @@
 # Sync plan (milestone S, before recipes)
 
+**Status: done (Oct 2026).** Steps 1-4 below are built, tested and live on pantry.jessegravenor.com.
+
 Goal: the pantry lives on pantry.jessegravenor.com, with a full offline copy on each
 device that syncs when it reconnects. One household password for now; a second named
 user (e.g. a partner) is a later phase. Owner-approved order: sync, then recipes.
