@@ -21,8 +21,42 @@ export interface PullResult {
   more: boolean;
 }
 
+/** Someone who can sign in (docs/USERS_PLAN.md). Ids are the server's, as strings. */
+export interface Person {
+  id: string;
+  name: string;
+}
+
+export interface PersonWithDevices extends Person {
+  devices: Array<{ name: string; lastSeen: number }>;
+}
+
+export interface SignedIn {
+  token: string;
+  serverEmpty: boolean;
+  user: Person;
+}
+
+/** A one-time code: to join (someone new), or to set a new password. Shown as ABCD-EFGH. */
+export interface Code {
+  name: string;
+  code: string;
+  expiresAt: number;
+}
+
 export interface SyncApi {
-  login(password: string, device: string): Promise<{ token: string; serverEmpty: boolean }>;
+  /** A name that matches no one falls back to the password alone. */
+  login(name: string, password: string, device: string): Promise<SignedIn>;
+  /** Uses an invite or new-password code, setting this person's password. */
+  join(code: string, password: string, device: string): Promise<SignedIn>;
+  me(token: string): Promise<{ user: Person; people: PersonWithDevices[] }>;
+  invite(token: string, name: string): Promise<Code>;
+  newCode(token: string, userId: string): Promise<Code>;
+  rename(token: string, userId: string, name: string): Promise<Person>;
+  /** Every device of one person. */
+  signOutPerson(token: string, userId: string): Promise<void>;
+  /** Someone else, never yourself. */
+  removePerson(token: string, userId: string): Promise<void>;
   push(token: string, changes: Change[]): Promise<{ accepted: number; ignored: number }>;
   pull(token: string, since: number, limit?: number): Promise<PullResult>;
   logout(token: string): Promise<void>;
@@ -32,10 +66,11 @@ export interface SyncApi {
 export type SyncErrorKind =
   | 'offline' // no connection, or the server couldn't be reached
   | 'wrong-password'
+  | 'wrong-code' // an invite or new-password code that's wrong, used or expired
   | 'signed-out' // the device token is no longer valid (signed out elsewhere, password changed)
   | 'rate-limited'
   | 'not-configured' // the server has no sync configuration yet
-  | 'server'; // anything else
+  | 'server'; // anything else (the message says what: "Someone is already called Kim")
 
 export class SyncError extends Error {
   constructor(
@@ -68,7 +103,10 @@ export class HttpSyncApi implements SyncApi {
     const json = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
     if (res.ok && json) return json;
     const message = json?.error ?? `Server error (${res.status})`;
-    if (res.status === 401) throw new SyncError(path === '/login' ? 'wrong-password' : 'signed-out', message);
+    if (res.status === 401) {
+      const kind = path === '/login' ? 'wrong-password' : path === '/join' ? 'wrong-code' : 'signed-out';
+      throw new SyncError(kind, message);
+    }
     if (res.status === 429) throw new SyncError('rate-limited', message);
     if (res.status === 503) throw new SyncError('not-configured', message);
     // A host's HTML error page or a proxy failure: treat like being offline, retry later.
@@ -76,8 +114,36 @@ export class HttpSyncApi implements SyncApi {
     throw new SyncError('server', message);
   }
 
-  login(password: string, device: string) {
-    return this.call<{ token: string; serverEmpty: boolean }>('POST', '/login', undefined, { password, device });
+  login(name: string, password: string, device: string) {
+    return this.call<SignedIn>('POST', '/login', undefined, { name, password, device });
+  }
+
+  join(code: string, password: string, device: string) {
+    return this.call<SignedIn>('POST', '/join', undefined, { code, password, device });
+  }
+
+  me(token: string) {
+    return this.call<{ user: Person; people: PersonWithDevices[] }>('GET', '/me', token);
+  }
+
+  invite(token: string, name: string) {
+    return this.call<Code>('POST', '/invite', token, { name });
+  }
+
+  newCode(token: string, userId: string) {
+    return this.call<Code>('POST', '/people/code', token, { userId });
+  }
+
+  rename(token: string, userId: string, name: string) {
+    return this.call<Person>('POST', '/people/rename', token, { userId, name });
+  }
+
+  async signOutPerson(token: string, userId: string) {
+    await this.call('POST', '/people/sign-out', token, { userId });
+  }
+
+  async removePerson(token: string, userId: string) {
+    await this.call('POST', '/people/remove', token, { userId });
   }
 
   push(token: string, changes: Change[]) {

@@ -14,6 +14,9 @@ const apis: Array<[string, () => SyncApi]> = [['fake server', () => new FakeSync
 if (process.env.PANTRY_API_URL) apis.push(['PHP server', () => new HttpSyncApi(process.env.PANTRY_API_URL)]);
 
 const uid = () => `t-${crypto.randomUUID()}`;
+/** The first person, from the household password. The tests never rename them. */
+const OWNER = 'Owner';
+const somebody = () => `Kim ${crypto.randomUUID().slice(0, 6)}`;
 const change = (
   id: string,
   updatedAt: number,
@@ -51,11 +54,11 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
 
   beforeEach(async () => {
     api = make();
-    ({ token } = await api.login(PASSWORD, 'Contract test'));
+    ({ token } = await api.login(OWNER, PASSWORD, 'Contract test'));
   });
 
   it('rejects a wrong password and an unknown token', async () => {
-    expect(await errorKind(api.login('not the password', 'x'))).toBe('wrong-password');
+    expect(await errorKind(api.login(OWNER, 'not the password', 'x'))).toBe('wrong-password');
     expect(await errorKind(api.pull('f'.repeat(64), 0))).toBe('signed-out');
   });
 
@@ -79,7 +82,7 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
     });
     expect(r.cursor).toBeGreaterThan(since);
     expect(r.more).toBe(false);
-    expect((await api.login(PASSWORD, 'x')).serverEmpty).toBe(false);
+    expect((await api.login(OWNER, PASSWORD, 'x')).serverEmpty).toBe(false);
   });
 
   it('newest change wins: older and repeated changes are ignored', async () => {
@@ -139,13 +142,71 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
   });
 
   it('signing out ends that token only; signing out everywhere ends them all', async () => {
-    const other = (await api.login(PASSWORD, 'Other')).token;
+    const other = (await api.login(OWNER, PASSWORD, 'Other')).token;
     await api.logout(token);
     expect(await errorKind(api.pull(token, 0))).toBe('signed-out');
     expect(await errorKind(api.pull(other, 0))).toBe('none');
-    const third = (await api.login(PASSWORD, 'Third')).token;
+    const third = (await api.login(OWNER, PASSWORD, 'Third')).token;
     await api.logoutAll(third);
     expect(await errorKind(api.pull(other, 0))).toBe('signed-out');
     expect(await errorKind(api.pull(third, 0))).toBe('signed-out');
+  });
+
+  it('signing in says who you are; a name that matches no one falls back to the password', async () => {
+    const a = await api.login(OWNER, PASSWORD, 'Named');
+    expect(a.user).toEqual({ id: expect.any(String), name: OWNER });
+    expect((await api.login('', PASSWORD, 'Unnamed')).user).toEqual(a.user);
+    expect((await api.login('nobody by this name', PASSWORD, 'Old app')).user).toEqual(a.user);
+    expect((await api.me(a.token)).user).toEqual(a.user);
+  });
+
+  it('an invite code makes a new person, once', async () => {
+    const name = somebody();
+    const invite = await api.invite(token, `  ${name} `);
+    expect(invite).toMatchObject({ name, code: expect.stringMatching(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/) });
+    expect(invite.expiresAt).toBeGreaterThan(Date.now() + 23 * 3600 * 1000);
+    // The same name can't be invited twice, nor match someone who's already here.
+    expect(await errorKind(api.invite(token, name.toUpperCase()))).toBe('server');
+    expect(await errorKind(api.invite(token, OWNER))).toBe('server');
+    // Too short a password is refused before the code is used.
+    expect(await errorKind(api.join(invite.code, 'short', 'Phone'))).toBe('server');
+    const joined = await api.join(invite.code.toLowerCase().replace('-', ' '), 'a-good-password', 'Kim’s phone');
+    expect(joined.user.name).toBe(name);
+    expect(await errorKind(api.join(invite.code, 'a-good-password', 'Again'))).toBe('wrong-code');
+    // The new person shares the pantry and signs in with their own name and password.
+    expect(await errorKind(api.pull(joined.token, 0))).toBe('none');
+    expect((await api.login(name, 'a-good-password', 'Tablet')).user).toEqual(joined.user);
+    expect(await errorKind(api.login(name, PASSWORD, 'Tablet'))).toBe('wrong-password');
+    const { people } = await api.me(token);
+    const kim = people.find((p) => p.id === joined.user.id)!;
+    expect(kim.devices.map((d) => d.name).sort()).toEqual(['Kim’s phone', 'Tablet']);
+    expect(people.find((p) => p.name === OWNER)).toBeTruthy();
+  });
+
+  it('anyone can rename, reset, sign out or remove someone else', async () => {
+    const invite = await api.invite(token, somebody());
+    const kim = await api.join(invite.code, 'first-password', 'Phone');
+    const id = kim.user.id;
+    const renamed = `${invite.name} R`;
+    expect(await api.rename(kim.token, id, renamed)).toEqual({ id, name: renamed });
+    expect(await errorKind(api.rename(kim.token, id, OWNER))).toBe('server');
+
+    // A forgotten password: a new code from someone else; the old devices sign in again.
+    const reset = await api.newCode(token, id);
+    expect(reset.name).toBe(renamed);
+    const again = await api.join(reset.code, 'second-password', 'Phone');
+    expect(again.user).toEqual({ id, name: renamed });
+    expect(await errorKind(api.pull(kim.token, 0))).toBe('signed-out');
+    expect((await api.login(renamed, 'second-password', 'x')).user.id).toBe(id);
+
+    await api.signOutPerson(token, id);
+    expect(await errorKind(api.pull(again.token, 0))).toBe('signed-out');
+    expect(await errorKind(api.pull(token, 0))).toBe('none');
+
+    const back = await api.login(renamed, 'second-password', 'Phone');
+    expect(await errorKind(api.removePerson(back.token, id))).toBe('server'); // not yourself
+    await api.removePerson(token, id);
+    expect(await errorKind(api.pull(back.token, 0))).toBe('signed-out');
+    expect((await api.me(token)).people.some((p) => p.id === id)).toBe(false);
   });
 });

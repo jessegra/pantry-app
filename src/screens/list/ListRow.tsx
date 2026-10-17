@@ -1,4 +1,5 @@
 import { repo } from '../../data/repo';
+import { useWhoDid } from '../../data/sync';
 import { autoReason } from '../../domain/list';
 import { alternateStore, formatQuantity } from '../../domain/rules';
 import type { Item, ListEntry, Store } from '../../domain/types';
@@ -19,6 +20,9 @@ export function ListRow({ entry, item, stores, onOpen }: Props) {
   const alt = checked ? undefined : alternateStore(entry, item);
   const altName = alt ? stores.find((s) => s.id === alt)?.name : undefined;
   const reason = auto ? autoReason(item) : '';
+  // Someone else's addition: "Added by Kim". Your own and the automatic ones say nothing.
+  const who = useWhoDid()(entry.createdBy);
+  const addedBy = !auto && who && who !== 'you' ? who : null;
 
   return (
     <div className={styles.row} data-auto={auto && !checked} data-checked={checked}>
@@ -40,6 +44,7 @@ export function ListRow({ entry, item, stores, onOpen }: Props) {
             Auto{reason && ` · ${reason}`}
           </span>
         )}
+        {addedBy && <span className={styles.byLine}>Added by {addedBy}</span>}
       </button>
       <span className={styles.qty}>{formatQuantity(entry.quantity, entry.unit)}</span>
       {altName ? (

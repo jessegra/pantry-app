@@ -8,6 +8,7 @@ import sheetStyles from '../../ui/Sheet.module.css';
 import { Sheet } from '../../ui/Sheet';
 import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import { downloadBackup } from './downloadBackup';
+import { PeopleSection } from './PeopleSection';
 import { syncStatusText } from './syncText';
 import styles from './Settings.module.css';
 
@@ -18,7 +19,9 @@ function signInError(e: unknown): string {
   if (!(e instanceof SyncError)) return 'Something went wrong. Try again.';
   switch (e.kind) {
     case 'wrong-password':
-      return 'That password isn’t right.';
+      return 'That name and password don’t match.';
+    case 'wrong-code':
+      return 'That code isn’t right, or it has expired. Ask for a new one.';
     case 'offline':
       return 'Can’t reach the server. Check the connection and try again.';
     case 'rate-limited':
@@ -37,6 +40,9 @@ type Confirm = 'signOut' | 'signOutEverywhere' | null;
 export function SyncSection() {
   const status = useSyncStatus();
   const sync = getSync();
+  const [mode, setMode] = useState<'password' | 'code'>('password');
+  const [name, setName] = useState(status.user?.name ?? '');
+  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [device, setDevice] = useState(guessDeviceName);
   const [error, setError] = useState('');
@@ -58,8 +64,11 @@ export function SyncSection() {
     submit(async () => {
       setError('');
       try {
-        const { serverEmpty, resumed } = await sync.signIn(password, device.trim() || guessDeviceName());
+        const dev = device.trim() || guessDeviceName();
+        const { serverEmpty, resumed } =
+          mode === 'code' ? await sync.join(code, password, dev) : await sync.signIn(name.trim(), password, dev);
         setPassword('');
+        setCode('');
         if (!resumed) setChoice({ serverEmpty });
       } catch (e) {
         setError(signInError(e));
@@ -77,7 +86,12 @@ export function SyncSection() {
           <p className={styles.syncStatus} role="status" data-phase={status.phase}>
             {syncStatusText(status, now)}
           </p>
-          {status.device && <p className={styles.footnoteTight}>This device: {status.device}</p>}
+          {status.device && (
+            <p className={styles.footnoteTight}>
+              This device: {status.device}
+              {status.user && ` · signed in as ${status.user.name}`}
+            </p>
+          )}
           <div className={styles.addButtons} data-flush="true">
             <Button variant="secondary" onClick={() => void sync.syncNow()} disabled={status.phase === 'syncing'}>
               Sync now
@@ -89,6 +103,7 @@ export function SyncSection() {
           <Button variant="text" size={44} className={styles.textLeft} onClick={() => setConfirm('signOutEverywhere')}>
             Sign out all devices…
           </Button>
+          <PeopleSection />
         </div>
       ) : (
         <form
@@ -108,16 +123,61 @@ export function SyncSection() {
               {plural(status.pending, 'change')} on this device will sync after signing in.
             </p>
           )}
-          <label className={sheetStyles.field}>
-            <span className={sheetStyles.label}>Household password</span>
-            <input
-              className={sheetStyles.textInput}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
+          {mode === 'password' ? (
+            <>
+              <label className={sheetStyles.field}>
+                <span className={sheetStyles.label}>Your name</span>
+                <input
+                  className={sheetStyles.textInput}
+                  autoComplete="username"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <label className={sheetStyles.field}>
+                <span className={sheetStyles.label}>Password</span>
+                <input
+                  className={sheetStyles.textInput}
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label className={sheetStyles.field}>
+                <span className={sheetStyles.label}>Invite code</span>
+                <input
+                  className={sheetStyles.textInput}
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  placeholder="ABCD-EFGH"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+              </label>
+              <div className={sheetStyles.field}>
+                <label htmlFor="join-password" className={sheetStyles.label}>
+                  Choose a password
+                </label>
+                <input
+                  id="join-password"
+                  aria-describedby="join-password-hint"
+                  className={sheetStyles.textInput}
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <span id="join-password-hint" className={styles.footnoteTight}>
+                  At least 8 characters. You’ll use it with your name to sign in on other devices.
+                </span>
+              </div>
+            </>
+          )}
           {!signedOut && (
             <label className={sheetStyles.field}>
               <span className={sheetStyles.label}>Name for this device</span>
@@ -129,8 +189,23 @@ export function SyncSection() {
               {error}
             </p>
           )}
-          <Button type="submit" disabled={!password || busy}>
-            {busy ? 'Signing in…' : signedOut ? 'Sign in again' : 'Connect'}
+          <Button
+            type="submit"
+            disabled={!password || (mode === 'code' && (!code.trim() || password.length < 8)) || busy}
+          >
+            {busy ? 'Signing in…' : mode === 'code' ? 'Join' : signedOut ? 'Sign in again' : 'Connect'}
+          </Button>
+          <Button
+            variant="text"
+            size={44}
+            className={styles.textLeft}
+            onClick={() => {
+              setMode(mode === 'code' ? 'password' : 'code');
+              setPassword('');
+              setError('');
+            }}
+          >
+            {mode === 'code' ? 'Sign in with a password instead' : 'I have an invite code'}
           </Button>
         </form>
       )}
@@ -149,7 +224,7 @@ export function SyncSection() {
       {confirm === 'signOutEverywhere' && (
         <ConfirmSheet
           title="Sign out every device?"
-          consequence="For a lost phone. Every device, this one included, needs the household password again. Nothing on any of them is lost."
+          consequence="For a lost phone. Every device of everyone, this one included, needs to sign in again. Nothing on any of them is lost."
           confirmLabel="Sign out all"
           onConfirm={async () => {
             try {

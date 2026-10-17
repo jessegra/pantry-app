@@ -8,6 +8,8 @@ import { categoryIcon } from '../../domain/categories';
 import { useNag } from '../../app/nag';
 import { useItem, useStores } from '../../data/hooks';
 import { repo } from '../../data/repo';
+import { useWhoDid } from '../../data/sync';
+import { relativeTime } from '../../domain/text';
 import { useOptimisticAmount } from '../../data/useOptimisticAmount';
 import {
   effectiveThreshold,
@@ -165,6 +167,8 @@ export function ItemDetailScreen() {
           </div>
         )}
 
+        <ChangedBy item={item} />
+
         <div className={styles.footer}>
           {!item.isLeftover && isSetUp(item) && !archived && (
             <Button onClick={() => setSheet('openOne')}>Open one</Button>
@@ -294,4 +298,16 @@ function FieldRow({
 function LeftoverWhere({ item }: { item: Item }) {
   const data = useItem(item.id);
   return <span className={styles.leftoverWhere}>{data?.locationLabel ?? ''}</span>;
+}
+
+/** "Changed 2 hours ago by Kim" (docs/USERS_PLAN.md). Only once two or more people sync. */
+function ChangedBy({ item }: { item: Item }) {
+  const who = useWhoDid()(item.updatedBy);
+  const [now] = useState(() => Date.now());
+  if (!who) return null;
+  return (
+    <p className={styles.changedBy}>
+      Changed {relativeTime(item.updatedAt, now)} by {who}
+    </p>
+  );
 }

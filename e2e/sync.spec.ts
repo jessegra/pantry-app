@@ -2,7 +2,8 @@ import { devices, expect, test, type Browser, type Page } from '@playwright/test
 
 // Sync step 4 (docs/SYNC_PLAN.md): two phones (two separate browser contexts, so
 // two separate IndexedDBs) syncing through the real PHP API and a fresh MySQL
-// database. Runs in CI only: playwright.sync.config.ts.
+// database. Runs in CI only: playwright.sync.config.ts. Phone B is a second person,
+// invited from phone A (docs/USERS_PLAN.md).
 
 const PASSWORD = process.env.PANTRY_API_PASSWORD ?? 'ci-household-password';
 
@@ -29,11 +30,21 @@ async function goTo(page: Page, tab: 'Inventory' | 'List' | 'Settings') {
   }
 }
 
-async function connect(page: Page, name: string, choice: { dialog: string; button: string }) {
+type Credentials = { name: string; password: string } | { code: string; password: string };
+
+async function connect(page: Page, name: string, who: Credentials, choice: { dialog: string; button: string }) {
   await goTo(page, 'Settings');
-  await syncRegion(page).getByLabel('Household password').fill(PASSWORD);
-  await syncRegion(page).getByLabel('Name for this device').fill(name);
-  await syncRegion(page).getByRole('button', { name: 'Connect' }).click();
+  const region = syncRegion(page);
+  if ('code' in who) {
+    await region.getByRole('button', { name: 'I have an invite code' }).click();
+    await region.getByLabel('Invite code').fill(who.code);
+    await region.getByLabel('Choose a password').fill(who.password);
+  } else {
+    await region.getByLabel('Your name').fill(who.name);
+    await region.getByLabel('Password', { exact: true }).fill(who.password);
+  }
+  await region.getByLabel('Name for this device').fill(name);
+  await region.getByRole('button', { name: 'code' in who ? 'Join' : 'Connect' }).click();
   await page.getByRole('dialog', { name: choice.dialog }).getByRole('button', { name: choice.button }).click();
   await expect(status(page)).toHaveText('Synced just now');
   await expect(syncRegion(page)).toContainText(`This device: ${name}`);
@@ -57,7 +68,20 @@ test('two phones stay in step through the real server', async ({ browser, baseUR
   const b = await newPhone(browser, baseURL!);
 
   // Phone A connects first: the server is empty, so A's pantry becomes the shared one.
-  await connect(a, 'Phone A', { dialog: 'Upload this pantry?', button: 'Upload' });
+  await connect(
+    a,
+    'Phone A',
+    { name: 'Owner', password: PASSWORD },
+    { dialog: 'Upload this pantry?', button: 'Upload' },
+  );
+
+  // A invites Kim; the code is all B needs.
+  await syncRegion(a).getByRole('button', { name: 'Invite someone' }).click();
+  await a.getByRole('dialog', { name: 'Invite someone' }).getByLabel('Their name').fill('Kim');
+  await a.getByRole('dialog', { name: 'Invite someone' }).getByRole('button', { name: 'Get a code' }).click();
+  const invite = a.getByRole('dialog', { name: 'Invite code for Kim' });
+  const code = (await invite.getByText(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/).textContent())!;
+  await invite.getByRole('button', { name: 'Done' }).click();
 
   // An edit on A: Black beans 3 -> 2 cans (it's now low, so it also goes on the list).
   await goTo(a, 'Inventory');
@@ -69,7 +93,13 @@ test('two phones stay in step through the real server', async ({ browser, baseUR
   await syncNow(a);
 
   // Phone B connects second and takes the server's pantry (its own sample data had 3 cans).
-  await connect(b, 'Phone B', { dialog: 'Use the pantry on the server?', button: 'Use the server’s' });
+  await connect(
+    b,
+    'Phone B',
+    { code, password: 'kims-own-password' },
+    { dialog: 'Use the pantry on the server?', button: 'Use the server’s' },
+  );
+  await expect(syncRegion(b)).toContainText('signed in as Kim');
   await goTo(b, 'Inventory');
   await expect(b.getByRole('slider', { name: 'Black beans', exact: true })).toHaveAttribute(
     'aria-valuetext',
@@ -87,6 +117,17 @@ test('two phones stay in step through the real server', async ({ browser, baseUR
   await goTo(a, 'List');
   await expect(a.getByRole('checkbox', { name: /Black beans/ })).toBeVisible();
   await expect(a.getByText('Dish soap')).toHaveCount(0);
+
+  // Kim adds something; A sees who did.
+  await goTo(b, 'List');
+  await b.getByRole('textbox', { name: 'Add to list' }).fill('Paper towels');
+  await b.getByRole('textbox', { name: 'Add to list' }).press('Enter');
+  await expect(b.getByRole('button', { name: /^Paper towels/ })).toBeVisible();
+  await syncNow(b);
+  await syncNow(a);
+  await expect(syncRegion(a).getByRole('button', { name: 'Kim, manage' })).toBeVisible();
+  await goTo(a, 'List');
+  await expect(a.getByText('Added by Kim')).toBeVisible();
 
   // A goes offline, keeps working, and catches up on reconnect.
   await goTo(a, 'Inventory');

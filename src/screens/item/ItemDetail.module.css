@@ -335,3 +335,9 @@
   font-weight: var(--weight-semibold);
   text-decoration: none;
 }
+
+.changedBy {
+  padding: 16px var(--gutter) 0;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}

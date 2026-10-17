@@ -1,11 +1,19 @@
 <?php
 // Pantry sync API (PHP 8.4, MySQL 5.7). See docs/SYNC_PLAN.md.
 //   GET  /api/health            no auth; is PHP + the database working
-//   POST /api/login             { password, device } -> { token, serverEmpty }
+//   POST /api/login             { name, password, device } -> { token, serverEmpty, user }
+//   POST /api/join              { code, password, device } -> { token, serverEmpty, user }
 //   POST /api/push              { changes: [...] } -> { accepted, ignored }
 //   GET  /api/pull?since=&limit -> { changes, cursor, more }
+//   GET  /api/me                -> { user, people: [{ id, name, devices }] }
+//   POST /api/invite            { name } -> { name, code, expiresAt }
+//   POST /api/people/code       { userId } -> { name, code, expiresAt } (a forgotten password)
+//   POST /api/people/rename     { userId, name }
+//   POST /api/people/sign-out   { userId }: that person's devices
+//   POST /api/people/remove     { userId }: someone else
 //   POST /api/logout            this device
-//   POST /api/logout-all        every device
+//   POST /api/logout-all        every device of everyone
+// People: docs/USERS_PLAN.md.
 // Signed-in requests carry the device token in X-Pantry-Token (shared hosts often
 // strip the Authorization header before PHP sees it).
 declare(strict_types=1);
@@ -42,7 +50,32 @@ try {
 
     switch ("$method $route") {
         case 'POST /login':
-            send_json(200, auth_login($pdo, $config, read_json()));
+            send_json(200, auth_login($pdo, read_json()));
+            break;
+        case 'POST /join':
+            send_json(200, people_join($pdo, read_json()));
+            break;
+        case 'GET /me':
+            send_json(200, people_me($pdo, auth_require($pdo)));
+            break;
+        case 'POST /invite':
+            send_json(200, people_invite($pdo, auth_require($pdo), read_json()));
+            break;
+        case 'POST /people/code':
+            send_json(200, people_code($pdo, auth_require($pdo), read_json()));
+            break;
+        case 'POST /people/rename':
+            auth_require($pdo);
+            send_json(200, people_rename($pdo, read_json()));
+            break;
+        case 'POST /people/sign-out':
+            auth_require($pdo);
+            people_sign_out($pdo, read_json());
+            send_json(200, ['ok' => true]);
+            break;
+        case 'POST /people/remove':
+            people_remove($pdo, auth_require($pdo), read_json());
+            send_json(200, ['ok' => true]);
             break;
         case 'POST /push':
             auth_require($pdo);

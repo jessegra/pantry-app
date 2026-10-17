@@ -27,7 +27,7 @@ function phone(): Phone {
 async function firstPhone(): Promise<Phone> {
   const p = phone();
   await p.repo.loadSampleData();
-  expect(await p.sync.signIn(PASSWORD, 'Phone A')).toEqual({ serverEmpty: true, resumed: false });
+  expect(await p.sync.signIn('Owner', PASSWORD, 'Phone A')).toEqual({ serverEmpty: true, resumed: false });
   await p.sync.startWithThisDevice();
   return p;
 }
@@ -37,7 +37,7 @@ async function secondPhone(): Promise<Phone> {
   const p = phone();
   await p.repo.loadSampleData(); // its own sample data, to be replaced
   await p.repo.addStore('Only on phone B');
-  expect(await p.sync.signIn(PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: false });
+  expect(await p.sync.signIn('Owner', PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: false });
   await p.sync.startWithServerData();
   return p;
 }
@@ -64,7 +64,7 @@ describe('change tracking', () => {
 
   it('wrong password changes nothing', async () => {
     const p = phone();
-    await expect(p.sync.signIn('nope', 'x')).rejects.toMatchObject({ kind: 'wrong-password' });
+    await expect(p.sync.signIn('Owner', 'nope', 'x')).rejects.toMatchObject({ kind: 'wrong-password' });
     expect((await p.sync.load()).phase).toBe('disconnected');
   });
 });
@@ -141,7 +141,7 @@ describe('keeping phones in step', () => {
     await b.sync.syncNow(); // can't push
     server.offline = false;
     // Pull the older change directly: the newer local edit must survive it.
-    await b.sync.apply((await server.pull((await server.login(PASSWORD, 'x')).token, 0)).changes);
+    await b.sync.apply((await server.pull((await server.login('Owner', PASSWORD, 'x')).token, 0)).changes);
     expect((await item(b, 'it-eggs'))!.name).toBe('Eggs (newer, unsent)');
     await b.sync.syncNow();
     await a.sync.syncNow();
@@ -174,7 +174,7 @@ describe('signing out', () => {
     expect((await item(b, 'it-milk'))!.amount).toBe(0);
 
     // Signing in again resumes: nothing replaced, and the waiting change goes up.
-    expect(await b.sync.signIn(PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: true });
+    expect(await b.sync.signIn('Owner', PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: true });
     expect(b.sync.getStatus()).toMatchObject({ phase: 'idle', pending: 0 });
     expect((await item(b, 'it-milk'))!.amount).toBe(0);
     expect(server.get('items', 'it-milk')!.data).toMatchObject({ amount: 0 });
@@ -188,7 +188,7 @@ describe('signing out', () => {
   it('a signed-out phone reloads as signed out, not as a new phone', async () => {
     await firstPhone();
     const b = await secondPhone();
-    const other = (await server.login(PASSWORD, 'x')).token;
+    const other = (await server.login('Owner', PASSWORD, 'x')).token;
     await server.logoutAll(other);
     await b.sync.syncNow();
     const reloaded = new SyncEngine(b.db, server);
@@ -213,5 +213,77 @@ describe('recipes sync', () => {
     await a.sync.syncNow();
     await b.sync.syncNow();
     expect((await b.db.recipes.get('rc-waffles'))!.name).toBe('Sunday waffles');
+  });
+});
+
+describe('people', () => {
+  /** A phone that joins with an invite from phone A. */
+  async function invitedPhone(a: Phone, name = 'Kim'): Promise<Phone> {
+    const { code } = await a.sync.invite(name);
+    const p = phone();
+    await p.repo.loadSampleData();
+    expect(await p.sync.join(code, 'kims-password', 'Kim’s phone')).toEqual({ serverEmpty: false, resumed: false });
+    await p.sync.startWithServerData();
+    return p;
+  }
+
+  it('says who is signed in, and knows everyone after a sync', async () => {
+    const a = await firstPhone();
+    expect(a.sync.getStatus().user).toEqual({ id: '1', name: 'Owner' });
+    const b = await invitedPhone(a);
+    expect(b.sync.getStatus().user).toEqual({ id: '2', name: 'Kim' });
+    await a.sync.syncNow();
+    expect(a.sync.getStatus().people?.map((p) => [p.name, p.devices.map((d) => d.name)])).toEqual([
+      ['Owner', ['Phone A']],
+      ['Kim', ['Kim’s phone']],
+    ]);
+    // Remembered across a reload.
+    const reloaded = new SyncEngine(a.db, server);
+    expect((await reloaded.load()).people).toHaveLength(2);
+  });
+
+  it('stamps each change with who made it, and it travels', async () => {
+    const a = await firstPhone();
+    const b = await invitedPhone(a);
+    await b.repo.setAmount('it-milk', 0);
+    const { id } = await b.repo.addListEntry({ name: 'Paper towels' });
+    expect(await item(b, 'it-milk')).toMatchObject({ updatedBy: '2' });
+    expect(await b.db.listEntries.get(id)).toMatchObject({ createdBy: '2', updatedBy: '2' });
+    await b.sync.syncNow();
+    await a.sync.syncNow();
+    expect(await a.db.listEntries.get(id)).toMatchObject({ createdBy: '2' });
+    // A's later change to it keeps who added it, and says who changed it.
+    await a.repo.updateListEntry(id, { quantity: 2 });
+    expect(await a.db.listEntries.get(id)).toMatchObject({ createdBy: '2', updatedBy: '1' });
+    // Signed out: no stamp.
+    await a.sync.signOut();
+    await a.repo.setAmount('it-eggs', 3);
+    expect((await item(a, 'it-eggs'))!.updatedBy).toBeUndefined();
+  });
+
+  it('a new-password code resumes a signed-out phone', async () => {
+    const a = await firstPhone();
+    const b = await invitedPhone(a);
+    const { code } = await a.sync.newCode('2');
+    await b.sync.syncNow();
+    expect(b.sync.getStatus().phase).toBe('idle'); // the code alone signs no one out
+    const c = phone();
+    await c.sync.join(code, 'a-new-password', 'Kim’s tablet');
+    await b.sync.syncNow();
+    expect(b.sync.getStatus().phase).toBe('signed-out');
+    await b.repo.setAmount('it-milk', 0); // waits
+    expect(await b.sync.signIn('kim', 'a-new-password', 'Kim’s phone')).toEqual({ serverEmpty: false, resumed: true });
+    expect(b.sync.getStatus().pending).toBe(0);
+  });
+
+  it('signing yourself out everywhere signs this phone out too; removing someone signs them out', async () => {
+    const a = await firstPhone();
+    const b = await invitedPhone(a);
+    await a.sync.removePerson('2');
+    await b.sync.syncNow();
+    expect(b.sync.getStatus().phase).toBe('signed-out');
+    expect(a.sync.getStatus().people?.map((p) => p.name)).toEqual(['Owner']);
+    await a.sync.signOutPerson('1');
+    expect(a.sync.getStatus().phase).toBe('signed-out');
   });
 });

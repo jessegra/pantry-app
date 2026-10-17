@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { repo } from '../repo';
 import { HttpSyncApi } from './api';
+import { whoDid } from '../../domain/people';
 import { SyncEngine, type SyncStatus } from './engine';
 
 let current = new SyncEngine(repo.db, new HttpSyncApi());
@@ -27,4 +28,10 @@ export function guessDeviceName(ua = typeof navigator === 'undefined' ? '' : nav
   if (/Macintosh/.test(ua)) return 'Mac';
   if (/Windows/.test(ua)) return 'Windows PC';
   return 'This device';
+}
+
+/** "you", "Kim", or null (see whoDid): for "Added by Kim". */
+export function useWhoDid(): (by: string | undefined) => string | null {
+  const { people, user } = useSyncStatus();
+  return (by) => whoDid(by, people, user?.id);
 }

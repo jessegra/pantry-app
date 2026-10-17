@@ -60,7 +60,7 @@ Decisions made after the mockups are logged in `docs/SPEC.md` §6 ("Decisions ma
 
 - `npm test`: unit + component tests (Vitest, jsdom, fake-indexeddb).
 - `npm run e2e`: Playwright against the production build: offline core loop, install criteria, and an axe (WCAG 2.2 AA) + 44px tap-target audit of every screen at phone and tablet sizes. CI runs all of it before publishing.
-- **Sync** (`server/api` PHP + `src/data/sync`): the CI `server` job runs `src/data/sync/contract.test.ts` against real PHP 8.4 + MySQL 5.7 (the same cases the in-memory `FakeSyncApi` passes), then `playwright.sync.config.ts`: two browsers syncing through the API served by `server/dev-router.php`. Neither runs locally without PHP + MySQL. See `docs/SYNC_PLAN.md`.
+- **Sync** (`server/api` PHP + `src/data/sync`): the CI `server` job runs `src/data/sync/contract.test.ts` against real PHP 8.4 + MySQL 5.7 (the same cases the in-memory `FakeSyncApi` passes), then `playwright.sync.config.ts`: two browsers syncing through the API served by `server/dev-router.php`. Neither runs locally without PHP + MySQL. See `docs/SYNC_PLAN.md`, and `docs/USERS_PLAN.md` for people (name + password sign-in, invite codes, "Added by").
 
 ## Hosting
 

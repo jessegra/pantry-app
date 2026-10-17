@@ -69,6 +69,8 @@ export interface Item {
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Who last changed it (a person's id), when signed in to sync. Set by the sync hooks. */
+  updatedBy?: string;
 }
 
 /** User-maintained in Settings → Categories. Only picks an icon. */
@@ -134,6 +136,9 @@ export interface ListEntry {
   checkedAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Who added it / last changed it (a person's id), when signed in to sync. Set by the sync hooks. */
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Staple {

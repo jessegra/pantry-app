@@ -222,3 +222,8 @@
   font-weight: var(--weight-semibold);
   text-decoration: none;
 }
+
+.byLine {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

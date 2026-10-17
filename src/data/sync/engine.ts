@@ -3,8 +3,17 @@
 // using the repository, and this runs underneath.
 import Dexie from 'dexie';
 import type { PantryDB } from '../db';
-import { SyncError, type Change, type ServerChange, type SyncApi } from './api';
-import { DIRTY, SYNCED_TABLES, markRemote, onLocalChange, stripLocal, type SyncedTable } from './hooks';
+import {
+  SyncError,
+  type Change,
+  type Code,
+  type Person,
+  type PersonWithDevices,
+  type ServerChange,
+  type SignedIn,
+  type SyncApi,
+} from './api';
+import { DIRTY, SYNCED_TABLES, markRemote, onLocalChange, setCurrentUser, stripLocal, type SyncedTable } from './hooks';
 
 const STATE_KEY = 'sync';
 const PUSH_BATCH = 200;
@@ -21,6 +30,10 @@ interface SyncState {
   device: string;
   connectedAt: number;
   lastSyncAt?: number;
+  /** Who's signed in here (docs/USERS_PLAN.md). Missing on devices connected before people existed, until the next sync. */
+  user?: Person;
+  /** Everyone, as of the last sync: names for "Added by Kim", and the People list. */
+  people?: PersonWithDevices[];
 }
 
 export type SyncPhase =
@@ -38,6 +51,8 @@ export interface SyncStatus {
   lastSyncAt?: number;
   device?: string;
   message?: string;
+  user?: Person;
+  people?: PersonWithDevices[];
 }
 
 type Row = Record<string, unknown> & { id: string; updatedAt: number };
@@ -48,7 +63,7 @@ export class SyncEngine {
   private running: Promise<void> | null = null;
   private again = false;
   /** Between signing in and choosing what to start with. */
-  private pending: { token: string; device: string; serverEmpty: boolean } | null = null;
+  private pending: { token: string; device: string; serverEmpty: boolean; user: Person } | null = null;
 
   constructor(
     private readonly db: PantryDB,
@@ -66,6 +81,7 @@ export class SyncEngine {
   };
 
   private set(patch: Partial<SyncStatus>) {
+    if ('user' in patch) setCurrentUser(this.db, patch.user?.id);
     this.status = { ...this.status, ...patch };
     this.listeners.forEach((l) => l());
   }
@@ -99,6 +115,8 @@ export class SyncEngine {
       device: state?.device,
       pending: state ? await this.pendingCount() : 0,
       message: state && !state.token ? SIGNED_OUT_MESSAGE : undefined,
+      user: state?.user,
+      people: state?.people,
     });
     return this.status;
   }
@@ -109,18 +127,27 @@ export class SyncEngine {
    * Step 1: check the household password. Nothing changes on this device yet; the
    * caller then picks startWithThisDevice (server empty) or startWithServerData.
    */
-  async signIn(password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+  async signIn(name: string, password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+    return this.signedIn(await this.api.login(name, password, device), device);
+  }
+
+  /** Step 1, with an invite (someone new) or a new-password code instead of a password. */
+  async join(code: string, password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+    return this.signedIn(await this.api.join(code, password, device), device);
+  }
+
+  private async signedIn({ token, serverEmpty, user }: SignedIn, device: string) {
     const previous = await this.readState();
-    const { token, serverEmpty } = await this.api.login(password, device);
     if (previous) {
       // Signed out (password changed, or "sign out everywhere"): pick up where it
       // left off. Its place in the change stream and its unsent changes are kept.
-      await this.writeState({ ...previous, token });
-      this.set({ phase: 'idle', message: undefined });
+      // (Whoever signs in now is who this device's changes come from.)
+      await this.writeState({ ...previous, token, user });
+      this.set({ phase: 'idle', message: undefined, user });
       await this.syncNow();
       return { serverEmpty, resumed: true };
     }
-    this.pending = { token, device, serverEmpty };
+    this.pending = { token, device, serverEmpty, user };
     return { serverEmpty, resumed: false };
   }
 
@@ -171,9 +198,9 @@ export class SyncEngine {
     return p;
   }
 
-  private async connect(p: { token: string; device: string }) {
-    await this.writeState({ token: p.token, cursor: 0, device: p.device, connectedAt: this.now() });
-    this.set({ phase: 'idle', device: p.device, message: undefined });
+  private async connect(p: { token: string; device: string; user: Person }) {
+    await this.writeState({ token: p.token, cursor: 0, device: p.device, connectedAt: this.now(), user: p.user });
+    this.set({ phase: 'idle', device: p.device, message: undefined, user: p.user });
     await this.syncNow();
   }
 
@@ -181,16 +208,79 @@ export class SyncEngine {
   async signOut(): Promise<void> {
     const state = await this.readState();
     if (state?.token) await this.api.logout(state.token).catch(() => {});
-    await this.writeState(undefined);
-    this.set({ phase: 'disconnected', pending: 0, lastSyncAt: undefined, device: undefined, message: undefined });
+    await this.forget();
   }
 
-  /** Every device (a lost phone). This one signs out too. */
+  private async forget() {
+    await this.writeState(undefined);
+    this.set({
+      phase: 'disconnected',
+      pending: 0,
+      lastSyncAt: undefined,
+      device: undefined,
+      message: undefined,
+      user: undefined,
+      people: undefined,
+    });
+  }
+
+  /** Every device of everyone (a lost phone). This one signs out too. */
   async signOutEverywhere(): Promise<void> {
     const state = await this.readState();
     if (state?.token) await this.api.logoutAll(state.token);
-    await this.writeState(undefined);
-    this.set({ phase: 'disconnected', pending: 0, lastSyncAt: undefined, device: undefined, message: undefined });
+    await this.forget();
+  }
+
+  // ---------- People (docs/USERS_PLAN.md) ----------
+
+  private async token(): Promise<string> {
+    const state = await this.readState();
+    if (!state?.token) throw new SyncError('signed-out', 'Not signed in');
+    return state.token;
+  }
+
+  /** Asks the server who's who; keeps it for names and the People list. */
+  async refreshPeople(): Promise<void> {
+    const state = await this.readState();
+    if (!state?.token) return;
+    const { user, people } = await this.api.me(state.token);
+    const latest = await this.readState();
+    if (latest?.token !== state.token) return; // signed out meanwhile
+    await this.writeState({ ...latest, user, people });
+    this.set({ user, people });
+  }
+
+  /** A one-time code for someone new to join this pantry. */
+  async invite(name: string): Promise<Code> {
+    const code = await this.api.invite(await this.token(), name);
+    return code;
+  }
+
+  /** A one-time code for someone who forgot their password. */
+  async newCode(userId: string): Promise<Code> {
+    return this.api.newCode(await this.token(), userId);
+  }
+
+  async renamePerson(userId: string, name: string): Promise<void> {
+    await this.api.rename(await this.token(), userId, name);
+    await this.refreshPeople();
+  }
+
+  /** Every device of one person. If it's you, this device is signed out too. */
+  async signOutPerson(userId: string): Promise<void> {
+    await this.api.signOutPerson(await this.token(), userId);
+    if (userId === this.status.user?.id) {
+      const state = await this.readState();
+      if (state) await this.writeState({ ...state, token: '' });
+      this.set({ phase: 'signed-out', message: SIGNED_OUT_MESSAGE });
+      return;
+    }
+    await this.refreshPeople();
+  }
+
+  async removePerson(userId: string): Promise<void> {
+    await this.api.removePerson(await this.token(), userId);
+    await this.refreshPeople();
   }
 
   // ---------- Syncing ----------
@@ -228,8 +318,9 @@ export class SyncEngine {
     try {
       await this.push(state.token);
       await this.pull(state);
+      await this.refreshPeople();
       const lastSyncAt = this.now();
-      await this.writeState({ ...state, cursor: state.cursor, lastSyncAt });
+      await this.writeState({ ...(await this.readState())!, cursor: state.cursor, lastSyncAt });
       this.set({ phase: 'idle', lastSyncAt, pending: await this.pendingCount() });
     } catch (e) {
       const pending = await this.pendingCount();

@@ -77,5 +77,5 @@ user (e.g. a partner) is a later phase. Owner-approved order: sync, then recipes
 
 ## Later phases (not now)
 
-- Named users (a partner's own sign-in), still sharing one household pantry.
+- ~~Named users (a partner's own sign-in), still sharing one household pantry.~~ Done: docs/USERS_PLAN.md.
 - Recipes, synced from the start.

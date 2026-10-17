@@ -37,7 +37,8 @@ const renderMore = async () => {
 
 async function connect(password = PASSWORD) {
   const region = await renderMore();
-  await userEvent.type(within(region).getByLabelText('Household password'), password);
+  await userEvent.type(within(region).getByLabelText('Your name'), 'Owner');
+  await userEvent.type(within(region).getByLabelText('Password'), password);
   const name = within(region).getByLabelText('Name for this device');
   await userEvent.clear(name);
   await userEvent.type(name, 'Test phone');
@@ -52,7 +53,7 @@ async function otherPhoneUploads() {
   await other.startEmpty();
   await other.createItem({ name: 'Saffron', locationId: null });
   const e = new SyncEngine(db, server);
-  await e.signIn(PASSWORD, 'Other phone');
+  await e.signIn('Owner', PASSWORD, 'Other phone');
   await e.startWithThisDevice();
 }
 
@@ -63,13 +64,13 @@ describe('sync settings', () => {
     await userEvent.click(within(sheet).getByRole('button', { name: 'Upload' }));
     await sheetClosed();
     expect(await within(region).findByText('Synced just now')).toBeInTheDocument();
-    expect(within(region).getByText('This device: Test phone')).toBeInTheDocument();
+    expect(within(region).getByText('This device: Test phone · signed in as Owner')).toBeInTheDocument();
     expect(server.get('items', 'it-milk')).toBeDefined();
   });
 
   it('says plainly when the password is wrong', async () => {
     const region = await connect('nope');
-    expect(await within(region).findByRole('alert')).toHaveTextContent('That password isn’t right.');
+    expect(await within(region).findByRole('alert')).toHaveTextContent('That name and password don’t match.');
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -119,13 +120,13 @@ describe('sync settings', () => {
     const region = await connect();
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Upload' }));
     await within(region).findByText('Synced just now');
-    await server.logoutAll((await server.login(PASSWORD, 'x')).token);
+    await server.logoutAll((await server.login('Owner', PASSWORD, 'x')).token);
     await repo.setAmount('it-milk', 0);
     await engine.syncNow();
     expect(await screen.findByRole('link', { name: 'Settings, sync needs attention' })).toBeInTheDocument();
     expect(within(region).getByText(/This device was signed out/)).toBeInTheDocument();
     expect(within(region).queryByLabelText('Name for this device')).toBeNull();
-    await userEvent.type(within(region).getByLabelText('Household password'), PASSWORD);
+    await userEvent.type(within(region).getByLabelText('Password'), PASSWORD);
     await userEvent.click(within(region).getByRole('button', { name: 'Sign in again' }));
     expect(await within(region).findByText('Synced just now')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull(); // resumed, no "which pantry?" question

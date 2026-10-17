@@ -142,7 +142,7 @@ export class Repo {
     const { db } = this;
     await db.transaction('rw', db.tables, async () => {
       await Promise.all(db.tables.map((t) => t.clear()));
-      await db.staples.bulkAdd(seedStaples);
+      await db.staples.bulkAdd(structuredClone(seedStaples));
       await db.categories.bulkAdd(defaultCategories(this.now()));
       await this.markInitialized();
     });
@@ -153,13 +153,13 @@ export class Repo {
     const { db } = this;
     await db.transaction('rw', db.tables, async () => {
       await Promise.all(db.tables.map((t) => t.clear()));
-      await db.groups.bulkAdd(seedGroups);
-      await db.locations.bulkAdd(seedLocations);
-      await db.stores.bulkAdd(seedStores);
-      await db.items.bulkAdd(seedItems);
-      await db.listEntries.bulkAdd(seedListEntries);
-      await db.recipes.bulkAdd(seedRecipes);
-      await db.staples.bulkAdd(seedStaples);
+      await db.groups.bulkAdd(structuredClone(seedGroups));
+      await db.locations.bulkAdd(structuredClone(seedLocations));
+      await db.stores.bulkAdd(structuredClone(seedStores));
+      await db.items.bulkAdd(structuredClone(seedItems));
+      await db.listEntries.bulkAdd(structuredClone(seedListEntries));
+      await db.recipes.bulkAdd(structuredClone(seedRecipes));
+      await db.staples.bulkAdd(structuredClone(seedStaples));
       await db.categories.bulkAdd(defaultCategories(this.now()));
       await this.markInitialized();
     });

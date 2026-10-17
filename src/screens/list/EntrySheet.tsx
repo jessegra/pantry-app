@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { repo } from '../../data/repo';
+import { useWhoDid } from '../../data/sync';
 import { pluralUnit } from '../../domain/rules';
 import type { ID, Item, ListEntry, Store } from '../../domain/types';
 import { Button } from '../../ui/Button';
@@ -20,6 +21,7 @@ export function EntrySheet({ entry, item, stores, onClose }: Props) {
   const [quantity, setQuantity] = useState<number | undefined>(entry.quantity);
   const [storeId, setStoreId] = useState<ID | undefined>(entry.storeId ?? undefined);
   const [blocked, setBlocked] = useState(false);
+  const addedBy = useWhoDid()(entry.createdBy);
 
   const save = async () => {
     if (quantity && quantity !== entry.quantity) await repo.updateListEntry(entry.id, { quantity });
@@ -38,7 +40,9 @@ export function EntrySheet({ entry, item, stores, onClose }: Props) {
       open
       onClose={onClose}
       title={entry.name}
-      description={entry.source === 'auto' ? 'Added automatically because it’s low.' : undefined}
+      description={
+        entry.source === 'auto' ? 'Added automatically because it’s low.' : addedBy ? `Added by ${addedBy}.` : undefined
+      }
       actions={
         <>
           <Button variant="neutral" onClick={() => void remove()}>
