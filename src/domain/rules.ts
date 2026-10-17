@@ -106,6 +106,9 @@ const PLURALS: Record<string, string> = {
   loaf: 'loaves',
   carton: 'cartons',
   head: 'heads',
+  cup: 'cups',
+  clove: 'cloves',
+  slice: 'slices',
 };
 /** Units that don't pluralise: oz, lb, gal, each, g, kg, ml, l... */
 export function pluralUnit(unit: string, n: number): string {

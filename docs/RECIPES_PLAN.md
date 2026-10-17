@@ -1,6 +1,6 @@
 # Recipes plan (milestone R)
 
-Status: steps 1–3 done (Oct 2026); step 4 ("do I have enough") next.
+Status: done (Oct 2026), all four steps.
 
 Goal: a small library of the household's routine recipes, each compared against the
 pantry: what can we make now, what are we close to, and one tap to put what's missing
@@ -80,6 +80,21 @@ Per recipe: **Ready** (nothing missing), **Almost** (1–3 missing), **Need more
 - Recipe names are unique (a clash is reported, not saved). Tags are lower case.
 - Staples are stored lower case; Settings has five segments (Locations, Stores,
   Categories, Staples, More) sized to their labels.
+
+## Decisions made while building step 4
+
+- Not enough is its own mark, **Short**, and counts like missing: it moves the recipe
+  toward Almost / Need more and goes on the list with Add missing to list. The row
+  says "Have 1 cup of 2"; the list row says "eggs (not enough)".
+- Enough says nothing extra. Where units can't be compared the row says
+  "Amount not compared (cup vs bag)" and the ingredient counts as have / low.
+- Conversions: US measures. Weight (g, kg, oz, lb) and volume (tsp, tbsp, fl oz, cup,
+  pt, qt, gal, ml, l) convert within themselves, never across (no densities).
+  "oz" is weight. A stick is ½ cup (butter). An item's package size bridges its
+  unit ("can") to a measure. Opened leftovers add in when their unit converts.
+- The size in brackets in a recipe line ("1 (15 oz) can") is ignored: cans compare
+  with cans.
+- Within 2% counts as enough (bar steps and rounding).
 
 ## Not now
 

@@ -486,3 +486,19 @@ button.edit {
   font: inherit;
   font-weight: var(--weight-medium);
 }
+
+.mark[data-status='short'] {
+  background: var(--color-bg-low);
+  color: var(--color-text-out);
+  box-shadow: inset 0 0 0 1px var(--color-text-out);
+}
+
+.amountNote {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.amountNote[data-kind='short'] {
+  color: var(--color-text-out);
+  font-weight: var(--weight-medium);
+}

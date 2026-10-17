@@ -101,6 +101,23 @@ describe('recipe screen', () => {
     expect(screen.getByText(/Season and sear the chicken/)).toBeInTheDocument();
   });
 
+  it('says when there is not enough, and when amounts cannot be compared', async () => {
+    await repo.setAmount('it-eggs', 1);
+    renderAt('/recipe/rc-waffles');
+    expect(await screen.findByText('Missing 1 ingredient, not enough of 1')).toBeInTheDocument();
+    const row = (text: string) =>
+      within(screen.getByRole('list'))
+        .getAllByRole('listitem')
+        .find((li) => li.textContent!.includes(text))!;
+    expect(row('2 large eggs')).toHaveTextContent('Short2 large eggsHave 1 of 2Eggs');
+    expect(row('2 cups flour')).toHaveTextContent('Amount not compared (cup vs bag)');
+    expect(row('1¾ cups milk').textContent).toBe('Have1¾ cups milkMilk'); // 1 gal is plenty: nothing to say
+    renderAt('/recipes');
+    expect((await screen.findAllByRole('link', { name: /Waffles/ })).at(-1)).toHaveTextContent(
+      'Missing: baking powder, large eggs (not enough)',
+    );
+  });
+
   it('adds what is missing to the list, skipping what is already there', async () => {
     renderAt('/recipe/rc-tacos');
     await userEvent.click(await screen.findByRole('button', { name: 'Add missing to list' }));

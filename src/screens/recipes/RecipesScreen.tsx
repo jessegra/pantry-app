@@ -21,7 +21,8 @@ const SECTIONS: Array<{ key: Readiness; title: string }> = [
 function recipeSummary({ check }: RecipeView): string {
   const low = check.low.length ? ` · low: ${check.low.map((i) => i.name).join(', ')}` : '';
   if (check.readiness === 'ready') return `Everything’s here${low}`;
-  return `Missing: ${check.missing.map((i) => i.name).join(', ')}`;
+  const names = check.missing.map((i) => (check.status.get(i.id) === 'short' ? `${i.name} (not enough)` : i.name));
+  return `Missing: ${names.join(', ')}`;
 }
 
 function matches(v: RecipeView, query: string, tag: string | null): boolean {

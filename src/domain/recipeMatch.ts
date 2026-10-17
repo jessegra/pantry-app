@@ -1,4 +1,5 @@
 // Recipes against the pantry (docs/RECIPES_PLAN.md, phase 1: "do I have it"). Pure.
+import { amountFor, type AmountCheck } from './recipeAmount';
 import { getStatus, isSetUp } from './rules';
 import { nameKey } from './text';
 import type { ID, IngredientMatch, Item, ListEntry, Recipe, RecipeIngredient, Staple } from './types';
@@ -131,7 +132,8 @@ export function autoMatch(name: string, items: Item[], staples: Staple[]): AutoM
 
 // ---------- Do I have it? ----------
 
-export type IngredientStatus = 'have' | 'low' | 'missing' | 'staple';
+/** short: some on hand, but less than the recipe needs (phase 2). */
+export type IngredientStatus = 'have' | 'low' | 'short' | 'missing' | 'staple';
 
 export interface PantryContext {
   itemsById: Map<ID, Item>;
@@ -158,42 +160,66 @@ function itemStatus(item: Item, ctx: PantryContext): 'have' | 'low' | 'missing' 
   return status === 'low' ? 'low' : 'have';
 }
 
-const RANK = { have: 2, low: 1, missing: 0 } as const;
+const RANK = { have: 3, low: 2, short: 1, missing: 0 } as const;
 
-export function ingredientStatus(ing: RecipeIngredient, ctx: PantryContext): IngredientStatus {
-  if (ing.match === 'staple') return 'staple';
+export interface IngredientCheck {
+  status: IngredientStatus;
+  /** How the amount compared, for the item (or substitute) that decided the status. */
+  amount?: AmountCheck;
+}
+
+/** Have it, and enough of it? The best of the linked item and its substitutes. */
+export function checkIngredient(ing: RecipeIngredient, ctx: PantryContext): IngredientCheck {
+  if (ing.match === 'staple') return { status: 'staple' };
   if (ing.match === 'item') {
     const items = [ing.itemId, ...(ing.substituteIds ?? [])]
       .map((id) => (id ? ctx.itemsById.get(id) : undefined))
       .filter((i): i is Item => !!i);
     if (items.length) {
-      // The best of the item and its substitutes.
-      return items.map((i) => itemStatus(i, ctx)).sort((a, b) => RANK[b] - RANK[a])[0];
+      const checks = items.map((i): IngredientCheck & { status: keyof typeof RANK } => {
+        const base = itemStatus(i, ctx);
+        const amount = amountFor(ing, i, ctx.leftoversByParent.get(i.id));
+        if (base === 'missing') return { status: base, ...(amount && { amount }) };
+        return { status: amount?.kind === 'short' ? 'short' : base, ...(amount && { amount }) };
+      });
+      return checks.sort((a, b) => RANK[b.status] - RANK[a.status])[0];
     }
     // The linked item was deleted: fall back to the name.
   }
-  return isStapleName(ing.name, ctx.staples) ? 'staple' : 'missing';
+  return { status: isStapleName(ing.name, ctx.staples) ? 'staple' : 'missing' };
 }
+
+export function ingredientStatus(ing: RecipeIngredient, ctx: PantryContext): IngredientStatus {
+  return checkIngredient(ing, ctx).status;
+}
+
+/** Counts against the recipe: not there, or not enough. */
+const isLacking = (s: IngredientStatus | undefined) => s === 'missing' || s === 'short';
 
 export type Readiness = 'ready' | 'almost' | 'more';
 
 export interface RecipeCheck {
   readiness: Readiness;
-  /** Missing, not counting optional ingredients. */
+  /** Missing or short, not counting optional ingredients. */
   missing: RecipeIngredient[];
   low: RecipeIngredient[];
   optionalMissing: RecipeIngredient[];
   status: Map<ID, IngredientStatus>;
+  /** Amount comparisons, where there was something to compare. */
+  amounts: Map<ID, AmountCheck>;
 }
 
 export function checkRecipe(recipe: Recipe, ctx: PantryContext): RecipeCheck {
-  const status = new Map(recipe.ingredients.map((i) => [i.id, ingredientStatus(i, ctx)]));
-  const missing = recipe.ingredients.filter((i) => status.get(i.id) === 'missing' && !i.optional);
-  const optionalMissing = recipe.ingredients.filter((i) => status.get(i.id) === 'missing' && i.optional);
+  const checks = new Map(recipe.ingredients.map((i) => [i.id, checkIngredient(i, ctx)]));
+  const status = new Map([...checks].map(([id, c]) => [id, c.status]));
+  const amounts = new Map<ID, AmountCheck>();
+  for (const [id, c] of checks) if (c.amount) amounts.set(id, c.amount);
+  const missing = recipe.ingredients.filter((i) => isLacking(status.get(i.id)) && !i.optional);
+  const optionalMissing = recipe.ingredients.filter((i) => isLacking(status.get(i.id)) && i.optional);
   const low = recipe.ingredients.filter((i) => status.get(i.id) === 'low');
   const readiness: Readiness =
     missing.length === 0 ? 'ready' : missing.length <= ALMOST_MAX_MISSING ? 'almost' : 'more';
-  return { readiness, missing, low, optionalMissing, status };
+  return { readiness, missing, low, optionalMissing, status, amounts };
 }
 
 /**

@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
+import { configure } from '@testing-library/react';
+
+// A screen's first draw waits on IndexedDB; with the whole suite running at once that
+// can pass Testing Library's 1s default for findBy/waitFor.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom has no modal <dialog> support. (Node-environment tests have no DOM at all.)
 if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {

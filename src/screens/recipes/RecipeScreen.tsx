@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { lastListLocation } from '../../app/listMemory';
 import { useRecipe } from '../../data/hooks';
 import { repo } from '../../data/repo';
+import type { AmountCheck } from '../../domain/recipeAmount';
 import type { IngredientStatus } from '../../domain/recipeMatch';
+import { formatNumber, formatQuantity } from '../../domain/rules';
 import { plural } from '../../domain/text';
 import type { RecipeIngredient } from '../../domain/types';
 import { Button } from '../../ui/Button';
@@ -16,6 +18,7 @@ import styles from './Recipes.module.css';
 const LABEL: Record<IngredientStatus | 'optional', string> = {
   have: 'Have',
   low: 'Low',
+  short: 'Short',
   missing: 'Missing',
   staple: 'Staple',
   optional: 'Optional',
@@ -42,6 +45,7 @@ export function RecipeScreen() {
 
   const { recipe, check, itemsById, toAdd } = data;
   const missing = check.missing.length;
+  const short = check.missing.filter((i) => check.status.get(i.id) === 'short').length;
   const meta = [recipe.tags.join(' · '), recipe.servings ? `Serves ${recipe.servings}` : '']
     .filter(Boolean)
     .join(' · ');
@@ -62,7 +66,7 @@ export function RecipeScreen() {
 
         <div className={styles.summary} data-readiness={check.readiness}>
           <p className={styles.summaryTitle}>
-            {check.readiness === 'ready' ? 'Ready to make' : `Missing ${plural(missing, 'ingredient')}`}
+            {check.readiness === 'ready' ? 'Ready to make' : summaryTitle(missing - short, short)}
           </p>
           {check.low.length > 0 && (
             <p className={styles.summaryText}>Running low: {check.low.map((i) => i.name).join(', ')}</p>
@@ -108,6 +112,11 @@ export function RecipeScreen() {
                   </span>
                   <span className={styles.ingText}>
                     <span>{ing.text}</span>
+                    {amountNote(check.amounts.get(ing.id)) && (
+                      <span className={styles.amountNote} data-kind={check.amounts.get(ing.id)!.kind}>
+                        {amountNote(check.amounts.get(ing.id))}
+                      </span>
+                    )}
                     {(item || subs.length > 0) && (
                       <span className={styles.ingLink}>
                         {item && (
@@ -151,6 +160,21 @@ export function RecipeScreen() {
       </ScreenBody>
     </>
   );
+}
+
+/** "Missing 2 ingredients", "Not enough of 1 ingredient", "Missing 1 ingredient, not enough of 1". */
+function summaryTitle(missing: number, short: number): string {
+  if (!short) return `Missing ${plural(missing, 'ingredient')}`;
+  if (!missing) return `Not enough of ${plural(short, 'ingredient')}`;
+  return `Missing ${plural(missing, 'ingredient')}, not enough of ${short}`;
+}
+
+/** "Have 1 cup of 2", or why the amount wasn't compared. Nothing when there's enough. */
+function amountNote(a: AmountCheck | undefined): string | null {
+  if (!a || a.kind === 'enough') return null;
+  if (a.kind === 'unknown') return `Amount not compared (${a.recipeUnit} vs ${a.itemUnit})`;
+  const unit = a.unit === 'each' ? undefined : a.unit;
+  return `Have ${unit ? formatQuantity(a.have, unit) : formatNumber(a.have)} of ${formatNumber(a.need)}`;
 }
 
 function TopBar({ editId }: { editId?: string }) {
