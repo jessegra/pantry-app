@@ -112,8 +112,36 @@ jobs:
       - run: npm ci
       - name: Contract tests against PHP + MySQL
         run: npx vitest run src/data/sync/contract.test.ts
+      # Two phones syncing through the real API, on a fresh database (docs/SYNC_PLAN.md step 4).
+      - name: App + API on one origin, fresh database
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: pantry_e2e
+          DB_USER: root
+          DB_PASSWORD: root
+          HOUSEHOLD_PASSWORD: ci-household-password
+        run: |
+          php -r '(new PDO("mysql:host=127.0.0.1", "root", "root"))->exec("CREATE DATABASE pantry_e2e CHARACTER SET utf8mb4");'
+          php scripts/write-api-config.php "$RUNNER_TEMP/e2e-config.php"
+          npm run build
+          PANTRY_API_CONFIG="$RUNNER_TEMP/e2e-config.php" php -S 127.0.0.1:8090 -t dist server/dev-router.php > php-e2e.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8090/api/health && break; sleep 1; done
+          echo; curl -sS http://127.0.0.1:8090/api/health
+      - run: npx playwright install --with-deps chromium
+      - name: Two phones in sync
+        run: npx playwright test -c playwright.sync.config.ts
       - if: failure()
-        run: cat php.log
+        run: |
+          echo '--- php.log'; cat php.log || true
+          echo '--- php-e2e.log'; cat php-e2e.log || true
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-sync
+          path: |
+            playwright-report-sync
+            test-results-sync
+          retention-days: 7
 
   deploy:
     needs: [build, server]

@@ -10,3 +10,5 @@ dist-root
 server/api/config.php
 ci-config.php
 old-config.php
+playwright-report-sync
+test-results-sync

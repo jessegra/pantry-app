@@ -7,6 +7,8 @@ const base = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   testDir: './e2e',
+  // Needs the PHP API + MySQL: see playwright.sync.config.ts.
+  testIgnore: 'sync.spec.ts',
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
   // CI runners are several times slower than a dev machine.
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },
