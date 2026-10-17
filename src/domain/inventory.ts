@@ -27,7 +27,9 @@ export const UNASSIGNED_NAME = 'Unassigned';
 
 /** Creation order, except a leftover sits directly after its parent when they share a location. */
 export function orderRows(rows: InventoryRow[]): InventoryRow[] {
-  const sorted = [...rows].sort((a, b) => a.item.createdAt - b.item.createdAt || a.item.name.localeCompare(b.item.name));
+  const sorted = [...rows].sort(
+    (a, b) => a.item.createdAt - b.item.createdAt || a.item.name.localeCompare(b.item.name),
+  );
   const ids = new Set(sorted.map((r) => r.item.id));
   const childrenOf = new Map<ID, InventoryRow[]>();
   const top: InventoryRow[] = [];
@@ -89,8 +91,7 @@ export function buildInventory(
 export type StatusFilter = 'all' | 'low' | 'out';
 
 const passes = (row: InventoryRow, filter: StatusFilter) =>
-  filter === 'all' ||
-  (filter === 'out' ? row.status === 'out' : row.status === 'low' || row.status === 'out');
+  filter === 'all' || (filter === 'out' ? row.status === 'out' : row.status === 'low' || row.status === 'out');
 
 /**
  * Applies the search box and the All / Low / Out chips. With no query and "All",

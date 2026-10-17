@@ -111,9 +111,30 @@ describe('categories', () => {
   it('a v2 database (before categories) upgrades with the built-ins and keeps its items', async () => {
     const name = `test-${crypto.randomUUID()}`;
     const old = new Dexie(name);
-    old.version(1).stores({ items: 'id, locationId, parentId, archivedAt', locations: 'id, groupId', groups: 'id', stores: 'id', listEntries: 'id, itemId, storeId', staples: 'id', meta: 'key' });
+    old
+      .version(1)
+      .stores({
+        items: 'id, locationId, parentId, archivedAt',
+        locations: 'id, groupId',
+        groups: 'id',
+        stores: 'id',
+        listEntries: 'id, itemId, storeId',
+        staples: 'id',
+        meta: 'key',
+      });
     old.version(2).stores({ activity: '++id, itemId, at' });
-    await old.table('items').add({ id: 'x', name: 'Milk', category: 'dairy', amount: 1, locationId: null, isLeftover: false, createdAt: 1, updatedAt: 1 });
+    await old
+      .table('items')
+      .add({
+        id: 'x',
+        name: 'Milk',
+        category: 'dairy',
+        amount: 1,
+        locationId: null,
+        isLeftover: false,
+        createdAt: 1,
+        updatedAt: 1,
+      });
     old.close();
     const upgraded = new PantryDB(name);
     expect(await upgraded.categories.get('dairy')).toMatchObject({ name: 'Dairy', icon: 'dairy' });
@@ -360,5 +381,32 @@ describe('no duplicates', () => {
     expect((await db.locations.toArray()).filter((l) => l.name === 'Garage')).toHaveLength(1);
     // Running it again changes nothing.
     expect(await repo.mergeDuplicates()).toEqual({ groups: 0, locations: 0, stores: 0, categories: 0 });
+  });
+});
+
+describe('recipes', () => {
+  it('the sample data has five recipes, and they go in and out of backups', async () => {
+    expect(await db.recipes.count()).toBe(5);
+    const backup = await repo.exportData();
+    expect(backup.tables.recipes).toHaveLength(5);
+    const other = new Repo(new PantryDB(`test-${crypto.randomUUID()}`));
+    await other.importData(JSON.parse(JSON.stringify(backup)));
+    expect(await other.db.recipes.get('rc-waffles')).toMatchObject({ name: 'Waffles', tags: ['breakfast', 'weekend'] });
+    const old = { ...backup, schemaVersion: 4, tables: { ...backup.tables } };
+    delete old.tables.recipes;
+    await other.importData(old);
+    expect(await other.db.recipes.count()).toBe(0);
+  });
+
+  it('sample recipes added to a real pantry are matched against its own items, once', async () => {
+    const real = new Repo(new PantryDB(`test-${crypto.randomUUID()}`));
+    await real.startEmpty();
+    const { id: eggs } = await real.createItem({ name: 'Eggs', locationId: null });
+    expect(await real.addSampleRecipes()).toBe(5);
+    const waffles = (await real.db.recipes.get('rc-waffles'))!;
+    expect(waffles.ingredients.find((i) => i.name === 'large eggs')).toMatchObject({ match: 'item', itemId: eggs });
+    expect(waffles.ingredients.find((i) => i.name === 'flour')).toMatchObject({ match: 'staple' }); // no Flour item here
+    expect(await real.addSampleRecipes()).toBe(0);
+    expect(await real.db.recipes.count()).toBe(5);
   });
 });

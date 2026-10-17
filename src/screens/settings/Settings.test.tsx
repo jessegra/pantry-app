@@ -199,7 +199,8 @@ describe('settings: more', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Export data' }));
     expect(await screen.findByText(/^Saved pantry-backup-\d{4}-\d{2}-\d{2}\.json\.$/)).toBeInTheDocument();
     const backup = JSON.parse(await created[0].text());
-    expect(backup).toMatchObject({ app: 'pantry', schemaVersion: 4 });
+    expect(backup).toMatchObject({ app: 'pantry', schemaVersion: 5 });
+    expect(backup.tables.recipes).toHaveLength(5);
     expect(JSON.stringify(backup)).not.toContain('_dirty'); // sync bookkeeping stays out of backups
     expect(backup.tables.categories).toHaveLength(13);
     expect(backup.tables.items).toHaveLength(11);

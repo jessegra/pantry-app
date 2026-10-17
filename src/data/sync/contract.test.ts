@@ -103,6 +103,20 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
     expect(r.changes).toEqual([expect.objectContaining({ id, deleted: true, data: null, updatedAt: 2000 })]);
   });
 
+  it('accepts recipes; refuses tables it does not sync', async () => {
+    const id = uid();
+    const recipe: Change = {
+      tbl: 'recipes',
+      id,
+      data: { id, name: 'Waffles', ingredients: [{ id: 'i1', name: 'flour', match: 'item' }] },
+      deleted: false,
+      updatedAt: 1000,
+    };
+    expect(await api.push(token, [recipe])).toEqual({ accepted: 1, ignored: 0 });
+    const bad = { ...recipe, tbl: 'activity' } as unknown as Change;
+    expect(await errorKind(api.push(token, [bad]))).toBe('server');
+  });
+
   it('pages through changes with limit and more', async () => {
     const since = await latestCursor(api, token);
     const ids = [uid(), uid(), uid(), uid(), uid()];

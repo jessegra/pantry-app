@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
-  alternateStore, applyPurchase, applyTap, ariaValueText, combinedAmountInPackageUnit, dragToAmount,
-  effectiveThreshold, fillFraction, formatAmount, getStatus, groupListByStore, missingForList, openOne,
-  reconcileAutoEntry, restockQuantity, shouldAutoList, tickPositions,
+  alternateStore,
+  applyPurchase,
+  applyTap,
+  ariaValueText,
+  combinedAmountInPackageUnit,
+  dragToAmount,
+  effectiveThreshold,
+  fillFraction,
+  formatAmount,
+  getStatus,
+  groupListByStore,
+  missingForList,
+  openOne,
+  reconcileAutoEntry,
+  restockQuantity,
+  shouldAutoList,
+  tickPositions,
 } from './rules';
 import { seedItems, seedListEntries, seedStores } from './seed';
 import type { Item } from './types';
@@ -100,7 +114,11 @@ describe('shopping list', () => {
   });
   it('updates, removes, and leaves checked/manual entries alone', () => {
     const entry = seedListEntries.find((e) => e.id === 'le-chicken')!;
-    expect(reconcileAutoEntry(withAmount('it-chicken', 0), [entry])).toEqual({ type: 'update', entryId: 'le-chicken', quantity: 4 });
+    expect(reconcileAutoEntry(withAmount('it-chicken', 0), [entry])).toEqual({
+      type: 'update',
+      entryId: 'le-chicken',
+      quantity: 4,
+    });
     expect(reconcileAutoEntry(withAmount('it-chicken', 1), [entry])).toEqual({ type: 'none' });
     expect(reconcileAutoEntry(withAmount('it-chicken', 3), [entry])).toEqual({ type: 'remove', entryId: 'le-chicken' });
     expect(reconcileAutoEntry(withAmount('it-chicken', 3), [{ ...entry, checked: true }])).toEqual({ type: 'none' });
@@ -115,7 +133,10 @@ describe('shopping list', () => {
     expect(groups.map((g) => g.name)).toEqual(['Costco', 'Fred Meyer', "Trader Joe's", 'Unassigned']);
     expect(groups[2].entries.map((e) => e.name)).toEqual(['Coffee beans', 'Tortillas']);
     const moreChecked = seedListEntries.map((e) => (e.id === 'le-coffee' ? { ...e, checked: true, checkedAt: 99 } : e));
-    expect(groupListByStore(moreChecked, seedStores)[2].entries.map((e) => e.name)).toEqual(['Tortillas', 'Coffee beans']);
+    expect(groupListByStore(moreChecked, seedStores)[2].entries.map((e) => e.name)).toEqual([
+      'Tortillas',
+      'Coffee beans',
+    ]);
   });
   it('moves to the other store', () => {
     const entry = seedListEntries.find((e) => e.id === 'le-chicken')!;
@@ -130,8 +151,18 @@ describe('just shopped & open one', () => {
     expect(applyPurchase(byId('it-coffee'), 2)).toBe(2.5);
   });
   it('open one makes a full linked leftover and takes one from the parent', () => {
-    const { leftover, parentAmount } = openOne(byId('it-blackbeans'), { unit: 'oz', locationId: 'loc-fridge', subtractFromParent: true });
-    expect(leftover).toMatchObject({ name: 'Black beans, opened', isLeftover: true, parentId: 'it-blackbeans', par: 8, amount: 8 });
+    const { leftover, parentAmount } = openOne(byId('it-blackbeans'), {
+      unit: 'oz',
+      locationId: 'loc-fridge',
+      subtractFromParent: true,
+    });
+    expect(leftover).toMatchObject({
+      name: 'Black beans, opened',
+      isLeftover: true,
+      parentId: 'it-blackbeans',
+      par: 8,
+      amount: 8,
+    });
     expect(parentAmount).toBe(2);
     expect(openOne(byId('it-blackbeans'), { locationId: null, subtractFromParent: false }).parentAmount).toBe(3);
   });

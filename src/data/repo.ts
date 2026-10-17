@@ -18,7 +18,16 @@ import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
 import { findDuplicates, nameKey } from '../domain/text';
 import { houseOrder, tripOrder } from '../domain/trip';
-import { seedGroups, seedItems, seedListEntries, seedLocations, seedStaples, seedStores } from '../domain/seed';
+import {
+  sampleRecipesFor,
+  seedGroups,
+  seedItems,
+  seedListEntries,
+  seedLocations,
+  seedRecipes,
+  seedStaples,
+  seedStores,
+} from '../domain/seed';
 import {
   FALLBACK_CATEGORY,
   type Category,
@@ -29,6 +38,7 @@ import {
   type Location,
   type LocationGroup,
   type PackageSize,
+  type Recipe,
   type Staple,
   type Store,
   type Timestamp,
@@ -146,6 +156,7 @@ export class Repo {
       await db.stores.bulkAdd(seedStores);
       await db.items.bulkAdd(seedItems);
       await db.listEntries.bulkAdd(seedListEntries);
+      await db.recipes.bulkAdd(seedRecipes);
       await db.staples.bulkAdd(seedStaples);
       await db.categories.bulkAdd(defaultCategories(this.now()));
       await this.markInitialized();
@@ -164,7 +175,16 @@ export class Repo {
   /** Everything except the local-only activity log. */
   async exportData(): Promise<Backup> {
     const { db } = this;
-    const tables = [db.items, db.locations, db.groups, db.stores, db.listEntries, db.staples, db.categories];
+    const tables = [
+      db.items,
+      db.locations,
+      db.groups,
+      db.stores,
+      db.listEntries,
+      db.staples,
+      db.categories,
+      db.recipes,
+    ];
     return db.transaction('r', tables, async () => ({
       app: 'pantry' as const,
       schemaVersion: SCHEMA_VERSION,
@@ -177,6 +197,7 @@ export class Repo {
         listEntries: (await db.listEntries.toArray()).map(stripLocal),
         staples: (await db.staples.toArray()).map(stripLocal),
         categories: (await db.categories.toArray()).map(stripLocal),
+        recipes: (await db.recipes.toArray()).map(stripLocal),
       },
     }));
   }
@@ -195,7 +216,32 @@ export class Repo {
       await db.staples.bulkAdd(tables.staples);
       // Backups from before categories were editable don't carry them.
       await db.categories.bulkAdd(tables.categories ?? defaultCategories(this.now()));
+      await db.recipes.bulkAdd(tables.recipes ?? []);
       await this.markInitialized();
+    });
+  }
+
+  // ---------- Recipes ----------
+
+  /**
+   * Adds the five sample recipes to this pantry, matched against its own items and
+   * staples. Skips any whose name is already used. Fixed ids, so adding them on two
+   * phones can't make duplicates once they sync.
+   */
+  async addSampleRecipes(): Promise<number> {
+    const { db } = this;
+    return db.transaction('rw', db.recipes, db.items, db.staples, async () => {
+      const [items, staples, existing] = await Promise.all([
+        db.items.toArray(),
+        db.staples.toArray(),
+        db.recipes.toArray(),
+      ]);
+      const taken = new Set(existing.flatMap((r) => [r.id, nameKey(r.name)]));
+      const fresh = sampleRecipesFor(items, staples, this.now()).filter(
+        (r) => !taken.has(r.id) && !taken.has(nameKey(r.name)),
+      );
+      await db.recipes.bulkAdd(fresh);
+      return fresh.length;
     });
   }
 
@@ -842,6 +888,8 @@ export interface Backup {
     staples: Staple[];
     /** Missing in backups made before categories were editable. */
     categories?: Category[];
+    /** Missing in backups made before recipes. */
+    recipes?: Recipe[];
   };
 }
 
@@ -862,8 +910,10 @@ export function validateBackup(data: unknown): Backup {
   const ok = (rows: unknown[]) =>
     rows.every((r) => r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string');
   if (!BACKUP_TABLES.every((t) => ok(d.tables![t]))) throw new BackupError('The backup looks damaged.');
-  const cats = d.tables!.categories;
-  if (cats !== undefined && !(Array.isArray(cats) && ok(cats))) throw new BackupError('The backup looks damaged.');
+  for (const optional of [d.tables!.categories, d.tables!.recipes]) {
+    if (optional !== undefined && !(Array.isArray(optional) && ok(optional)))
+      throw new BackupError('The backup looks damaged.');
+  }
   return d as Backup;
 }
 

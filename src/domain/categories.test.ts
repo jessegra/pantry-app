@@ -4,7 +4,13 @@ import { CATEGORY_ICONS } from '../ui/icons';
 import type { Category } from './types';
 
 const defaults = defaultCategories();
-const snacks: Category = { id: 'c-snacks', name: 'Snacks', icon: 'generic', keywords: ['chips', 'crackers'], updatedAt: 0 };
+const snacks: Category = {
+  id: 'c-snacks',
+  name: 'Snacks',
+  icon: 'generic',
+  keywords: ['chips', 'crackers'],
+  updatedAt: 0,
+};
 
 describe('guessCategory', () => {
   it('uses the built-in guesses', () => {
@@ -19,7 +25,12 @@ describe('guessCategory', () => {
   });
 
   it('falls back to Other when the built-in category was deleted', () => {
-    expect(guessCategory('Black beans', defaults.filter((c) => c.id !== 'canned'))).toBe('generic');
+    expect(
+      guessCategory(
+        'Black beans',
+        defaults.filter((c) => c.id !== 'canned'),
+      ),
+    ).toBe('generic');
   });
 });
 

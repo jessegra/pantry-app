@@ -2,7 +2,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { defaultCategories } from '../domain/categories';
 import { installSyncHooks, type Tombstone } from './sync/hooks';
-import type { Category, ID, Item, ListEntry, Location, LocationGroup, Staple, Store, Timestamp } from '../domain/types';
+import type { Category, ID, Item, ListEntry, Location, LocationGroup, Recipe, Staple, Store, Timestamp } from '../domain/types';
 
 export interface MetaRow {
   key: string;
@@ -27,6 +27,7 @@ export class PantryDB extends Dexie {
   activity!: EntityTable<ActivityRow, 'id'>;
   categories!: EntityTable<Category, 'id'>;
   tombstones!: Dexie.Table<Tombstone, [string, string]>;
+  recipes!: EntityTable<Recipe, 'id'>;
 
   constructor(name = 'pantry') {
     super(name);
@@ -53,10 +54,12 @@ export class PantryDB extends Dexie {
       .upgrade((tx) => tx.table('categories').bulkPut(defaultCategories(Date.now())));
     // v4 (sync): deletions waiting to be sent to the server.
     this.version(4).stores({ tombstones: '[tbl+id]' });
+    // v5: recipes (docs/RECIPES_PLAN.md). Ingredients live inside the recipe record.
+    this.version(5).stores({ recipes: 'id' });
 
     installSyncHooks(this);
   }
 }
 
 /** Bump with every new Dexie version. Also written to meta for export/import. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;

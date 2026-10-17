@@ -96,8 +96,16 @@ export function dragToAmount(item: Pick<Item, 'par'>, fraction: number): number 
 // ---------- Formatting ----------
 
 const PLURALS: Record<string, string> = {
-  can: 'cans', bag: 'bags', stick: 'sticks', bottle: 'bottles', pack: 'packs',
-  box: 'boxes', jar: 'jars', loaf: 'loaves', carton: 'cartons', head: 'heads',
+  can: 'cans',
+  bag: 'bags',
+  stick: 'sticks',
+  bottle: 'bottles',
+  pack: 'packs',
+  box: 'boxes',
+  jar: 'jars',
+  loaf: 'loaves',
+  carton: 'cartons',
+  head: 'heads',
 };
 /** Units that don't pluralise: oz, lb, gal, each, g, kg, ml, l... */
 export function pluralUnit(unit: string, n: number): string {
@@ -105,7 +113,11 @@ export function pluralUnit(unit: string, n: number): string {
   return PLURALS[unit] ?? unit;
 }
 
-const FRACTIONS: [number, string][] = [[0.25, '¼'], [0.5, '½'], [0.75, '¾']];
+const FRACTIONS: [number, string][] = [
+  [0.25, '¼'],
+  [0.5, '½'],
+  [0.75, '¾'],
+];
 
 export function formatNumber(n: number): string {
   const whole = Math.floor(n + EPS);
@@ -254,7 +266,10 @@ export interface OpenOneInput {
 }
 
 /** Builds the leftover item (minus ids/timestamps) and the parent's new amount. */
-export function openOne(parent: Item, input: OpenOneInput): {
+export function openOne(
+  parent: Item,
+  input: OpenOneInput,
+): {
   leftover: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>;
   parentAmount: number;
 } {

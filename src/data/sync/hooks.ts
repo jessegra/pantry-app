@@ -18,6 +18,7 @@ export const SYNCED_TABLES = [
   'listEntries',
   'staples',
   'categories',
+  'recipes',
 ] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 

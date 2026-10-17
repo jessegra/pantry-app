@@ -9,13 +9,13 @@ export function tripOrder(entries: ListEntry[], stores: Store[]): Array<ListEntr
 }
 
 /** "Continue through the house": remaining non-archived, set-up items, location by location. */
-export function houseOrder(
-  sections: InventorySection[],
-  exclude: Set<ID>,
-): Array<{ item: Item; where: string }> {
+export function houseOrder(sections: InventorySection[], exclude: Set<ID>): Array<{ item: Item; where: string }> {
   return sections.flatMap((s) =>
-    (s.kind === 'group' ? s.locations.map((l) => ({ l, where: `${s.group.name} · ${l.name}` })) : [{ l: s.location, where: s.location.name }]).flatMap(
-      ({ l, where }) => l.rows.filter((r) => isSetUp(r.item) && !exclude.has(r.item.id)).map((r) => ({ item: r.item, where })),
+    (s.kind === 'group'
+      ? s.locations.map((l) => ({ l, where: `${s.group.name} · ${l.name}` }))
+      : [{ l: s.location, where: s.location.name }]
+    ).flatMap(({ l, where }) =>
+      l.rows.filter((r) => isSetUp(r.item) && !exclude.has(r.item.id)).map((r) => ({ item: r.item, where })),
     ),
   );
 }

@@ -34,7 +34,8 @@ function blockAt(rows: Row[], i: number): [number, number] {
   const r = rows[i];
   if (r.kind !== 'group') return [i, i + 1];
   let end = i + 1;
-  while (end < rows.length && rows[end].kind === 'location' && (rows[end] as { groupId: ID | null }).groupId === r.id) end++;
+  while (end < rows.length && rows[end].kind === 'location' && (rows[end] as { groupId: ID | null }).groupId === r.id)
+    end++;
   return [i, end];
 }
 
@@ -85,7 +86,8 @@ export function moveRowBy(rows: Row[], index: number, dir: -1 | 1): Row[] {
     if (row.kind === 'group') {
       // Jump above the previous top-level block.
       let prev = index - 1;
-      while (prev > 0 && rows[prev].kind === 'location' && (rows[prev] as { groupId: ID | null }).groupId !== null) prev--;
+      while (prev > 0 && rows[prev].kind === 'location' && (rows[prev] as { groupId: ID | null }).groupId !== null)
+        prev--;
       return moveRow(rows, index, prev);
     }
     return moveRow(rows, index, index - 1);

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /** Tables the app syncs. Anything else is refused. */
-const SYNC_TABLES = ['items', 'locations', 'groups', 'stores', 'listEntries', 'staples', 'categories'];
+const SYNC_TABLES = ['items', 'locations', 'groups', 'stores', 'listEntries', 'staples', 'categories', 'recipes'];
 const PUSH_MAX = 500;
 const PULL_MAX = 1000;
 const RECORD_MAX_BYTES = 256 * 1024;

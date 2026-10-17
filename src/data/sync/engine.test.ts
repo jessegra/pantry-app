@@ -203,3 +203,15 @@ describe('signing out', () => {
     expect(server.calls.filter((c) => c === 'push').length).toBe(1); // only the first upload
   });
 });
+
+describe('recipes sync', () => {
+  it('a recipe added on one phone appears on the other', async () => {
+    const a = await firstPhone();
+    const b = await secondPhone();
+    expect(await b.db.recipes.count()).toBe(5);
+    await a.db.recipes.update('rc-waffles', { name: 'Sunday waffles' });
+    await a.sync.syncNow();
+    await b.sync.syncNow();
+    expect((await b.db.recipes.get('rc-waffles'))!.name).toBe('Sunday waffles');
+  });
+});

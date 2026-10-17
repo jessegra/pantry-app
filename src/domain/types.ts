@@ -144,3 +144,44 @@ export interface Staple {
 }
 
 export type ItemStatus = 'untracked' | 'ok' | 'low' | 'out';
+
+/**
+ * How a recipe ingredient relates to the pantry (docs/RECIPES_PLAN.md):
+ * - item: linked to a pantry item (substitutes, if any, also do)
+ * - staple: always assumed on hand
+ * - none: not something we stock; counts as missing, goes on the list by name
+ */
+export type IngredientMatch = 'item' | 'staple' | 'none';
+
+export interface RecipeIngredient {
+  /** Stable within the recipe. */
+  id: ID;
+  /** The line as typed: "2 cups flour, sifted". */
+  text: string;
+  quantity?: number;
+  /** Normalized: "cup", "tbsp", "tsp", "g", "oz", "can"… */
+  unit?: string;
+  /** "flour" */
+  name: string;
+  /** "sifted" */
+  prep?: string;
+  match: IngredientMatch;
+  itemId?: ID;
+  /** Other pantry items that also do (butter or oil). */
+  substituteIds?: ID[];
+  /** Never counts as missing. */
+  optional?: boolean;
+}
+
+export interface Recipe {
+  id: ID;
+  name: string;
+  tags: string[];
+  servings?: number;
+  ingredients: RecipeIngredient[];
+  /** Free text. */
+  steps?: string;
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}

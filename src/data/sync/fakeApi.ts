@@ -2,6 +2,7 @@
 // repeats ignored, sequence numbers for pulling). For tests and local development.
 // The contract tests run the same cases against this and the real PHP server.
 import { SyncError, type Change, type PullResult, type ServerChange, type SyncApi } from './api';
+import { SYNCED_TABLES } from './hooks';
 
 export class FakeSyncApi implements SyncApi {
   private records = new Map<string, ServerChange>();
@@ -32,6 +33,9 @@ export class FakeSyncApi implements SyncApi {
 
   async push(token: string, changes: Change[]) {
     this.guard('push', token);
+    // Like the PHP server: an unknown table rejects the whole batch.
+    if (changes.some((c) => !(SYNCED_TABLES as readonly string[]).includes(c.tbl)))
+      throw new SyncError('server', 'Unknown table');
     let accepted = 0;
     for (const c of changes) {
       const key = `${c.tbl}/${c.id}`;

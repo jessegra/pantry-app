@@ -16,7 +16,14 @@ export function defaultCategories(now = 0): Category[] {
 
 /** "tortilla, Wrap ,, wraps" -> ['tortilla', 'wrap', 'wraps'] */
 export function parseKeywords(text: string): string[] {
-  return [...new Set(text.split(',').map((w) => w.trim().toLocaleLowerCase()).filter(Boolean))];
+  return [
+    ...new Set(
+      text
+        .split(',')
+        .map((w) => w.trim().toLocaleLowerCase())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -41,7 +48,6 @@ export function categoryIcon(id: ID, byId: Map<ID, Category>): string {
 /** Settings and pickers: alphabetical, Other last. */
 export function sortCategories(categories: Category[]): Category[] {
   return [...categories].sort(
-    (a, b) =>
-      Number(a.id === FALLBACK_CATEGORY) - Number(b.id === FALLBACK_CATEGORY) || a.name.localeCompare(b.name),
+    (a, b) => Number(a.id === FALLBACK_CATEGORY) - Number(b.id === FALLBACK_CATEGORY) || a.name.localeCompare(b.name),
   );
 }
