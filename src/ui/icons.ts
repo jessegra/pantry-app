@@ -5,7 +5,8 @@
 import type { CategoryKey } from '../domain/types';
 
 export const CATEGORY_ICONS: Record<CategoryKey, string> = {
-  canned: 'M6 5c0-1.1 2.7-2 6-2s6 .9 6 2v14c0 1.1-2.7 2-6 2s-6-.9-6-2V5zM6 5c0 1.1 2.7 2 6 2s6-.9 6-2M6 10.5h12M6 14.5h12',
+  canned:
+    'M6 5c0-1.1 2.7-2 6-2s6 .9 6 2v14c0 1.1-2.7 2-6 2s-6-.9-6-2V5zM6 5c0 1.1 2.7 2 6 2s6-.9 6-2M6 10.5h12M6 14.5h12',
   dairy: 'M8 3h8v3l3 4v11H5V10l3-4V3zM5 10h14M8 6h8',
   eggs: 'M12 3c3.5 0 6.5 5.5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.5 8.5 3 12 3z',
   butter: 'M3 10l4-3h14v8l-4 3H3v-8zM3 10h14v8M17 10l4-3',

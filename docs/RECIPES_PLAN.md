@@ -1,5 +1,7 @@
 # Recipes plan (milestone R)
 
+Status: steps 1–3 done (Oct 2026); step 4 ("do I have enough") next.
+
 Goal: a small library of the household's routine recipes, each compared against the
 pantry: what can we make now, what are we close to, and one tap to put what's missing
 on the shopping list. Owner decisions (Oct 2026): recipes are typed in; matching starts
@@ -65,6 +67,19 @@ Per recipe: **Ready** (nothing missing), **Almost** (1–3 missing), **Need more
    unit; weight to weight and volume to volume conversions; a pantry item's package size,
    e.g. 1 can = 15 oz). Shows "have 1 cup of 2"; where amounts can't be compared
    (2 cups flour vs. a 40% bag), it says so and falls back to "have it".
+
+## Decisions made while building step 3
+
+- The review appears on Save only when a line needs a look (unmatched, or an unsure
+  match such as "coconut milk" / Milk). Clear matches show as one line with **Change**;
+  **Check ingredient matches** opens the review on demand.
+- An unsure match is offered ("Link to Milk"), never preselected: saving without
+  answering leaves it unlinked, so it counts as missing.
+- Editing keeps the earlier answer for every line typed exactly as before; a changed
+  line is matched afresh. A line whose linked item was deleted is asked about again.
+- Recipe names are unique (a clash is reported, not saved). Tags are lower case.
+- Staples are stored lower case; Settings has five segments (Locations, Stores,
+  Categories, Staples, More) sized to their labels.
 
 ## Not now
 

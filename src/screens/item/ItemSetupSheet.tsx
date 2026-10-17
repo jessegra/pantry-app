@@ -65,9 +65,7 @@ export function ItemSetupSheet({ item, fields, title, description, dismissLabel,
     >
       {has('unit') && <UnitPicker value={unit} options={withUnit(ITEM_UNITS, item.unit)} onChange={setUnit} />}
       {has('par') && <Stepper label="Par (a full stock)" value={par} onChange={setPar} suffix={plural} />}
-      {has('amount') && (
-        <Stepper label="On hand now" value={amount ?? par} onChange={setAmount} suffix={plural} />
-      )}
+      {has('amount') && <Stepper label="On hand now" value={amount ?? par} onChange={setAmount} suffix={plural} />}
       {has('preferredStore') && (
         <StorePicker
           label="Preferred store"

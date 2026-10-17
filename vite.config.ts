@@ -58,5 +58,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Typing-heavy screen tests can pass 5s when the whole suite runs at once.
+    testTimeout: 15_000,
   },
 });

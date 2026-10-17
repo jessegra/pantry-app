@@ -376,3 +376,25 @@
   align-self: flex-start;
   padding-left: 0;
 }
+
+/* Staples */
+.intro {
+  padding: 16px var(--gutter) 8px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.row[data-plain='true'] {
+  padding-left: var(--gutter);
+}
+
+/* Five segments at 390px: sized to their labels. */
+.segmented {
+  display: flex;
+  overflow-x: auto;
+}
+
+.segment {
+  flex: 1 0 auto;
+  padding: 0 8px;
+}

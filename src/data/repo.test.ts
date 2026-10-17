@@ -430,3 +430,59 @@ describe('recipe: add missing to list', () => {
     });
   });
 });
+
+describe('adding and editing recipes', () => {
+  const ing = { id: 'i1', text: '2 eggs', name: 'eggs', quantity: 2, match: 'item' as const, itemId: 'it-eggs' };
+
+  it('adds a recipe, tidied, and edits it in place', async () => {
+    const r = await repo.saveRecipe({
+      name: ' Fried  rice ',
+      tags: ['Dinner', 'quick', 'dinner'],
+      servings: 2,
+      ingredients: [ing],
+      steps: ' Fry. ',
+      notes: '  ',
+    });
+    if (!('id' in r)) throw new Error(r.problem);
+    const saved = (await db.recipes.get(r.id))!;
+    expect(saved).toMatchObject({ name: 'Fried rice', tags: ['dinner', 'quick'], servings: 2, steps: 'Fry.' });
+    expect(saved.notes).toBeUndefined();
+    expect(await repo.saveRecipe({ name: 'Egg fried rice', tags: [], ingredients: [ing] }, r.id)).toEqual({ id: r.id });
+    const edited = (await db.recipes.get(r.id))!;
+    expect(edited).toMatchObject({ name: 'Egg fried rice', tags: [], createdAt: saved.createdAt });
+    expect(edited.servings).toBeUndefined();
+    expect(edited.updatedAt).toBeGreaterThan(saved.updatedAt);
+    expect(await db.recipes.count()).toBe(6);
+  });
+
+  it('refuses a second recipe with the same name, or none', async () => {
+    expect(await repo.saveRecipe({ name: 'waffles', tags: [], ingredients: [] })).toEqual({
+      problem: 'There’s already a recipe called waffles.',
+    });
+    expect(await repo.saveRecipe({ name: ' ', tags: [], ingredients: [] })).toEqual({
+      problem: 'Give the recipe a name.',
+    });
+    expect(await db.recipes.count()).toBe(5);
+  });
+
+  it('deletes a recipe, leaving a tombstone for the other phone', async () => {
+    await repo.deleteRecipe('rc-pizza');
+    expect(await db.recipes.get('rc-pizza')).toBeUndefined();
+    expect(await db.tombstones.get(['recipes', 'rc-pizza'])).toMatchObject({ tbl: 'recipes', id: 'rc-pizza' });
+  });
+});
+
+describe('staples', () => {
+  it('adds once per name, renames, deletes', async () => {
+    const id = await repo.addStaple(' Baking Soda ');
+    expect(await db.staples.get(id)).toMatchObject({ name: 'baking soda' });
+    expect(await repo.addStaple('baking soda')).toBe(id);
+    await repo.renameStaple(id, 'Baking  powder');
+    expect(await db.staples.get(id)).toMatchObject({ name: 'baking powder' });
+    await repo.renameStaple(id, '  ');
+    expect(await db.staples.get(id)).toMatchObject({ name: 'baking powder' });
+    await repo.deleteStaple(id);
+    expect(await db.staples.count()).toBe(7);
+    expect(await db.tombstones.get(['staples', id])).toBeTruthy();
+  });
+});

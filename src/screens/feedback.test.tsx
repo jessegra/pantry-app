@@ -97,7 +97,9 @@ describe('reset data and build info', () => {
   it('erases everything, then resets to the sample data', async () => {
     renderAt('/settings/more');
     await userEvent.click(await screen.findByRole('button', { name: 'Erase everything' }));
-    await userEvent.click(within(screen.getByRole('dialog', { name: 'Erase everything?' })).getByRole('button', { name: 'Erase' }));
+    await userEvent.click(
+      within(screen.getByRole('dialog', { name: 'Erase everything?' })).getByRole('button', { name: 'Erase' }),
+    );
     await sheetClosed();
     await waitFor(async () => expect(await repo.db.items.count()).toBe(0));
     await userEvent.click(screen.getByRole('button', { name: 'Reset to sample data' }));

@@ -269,3 +269,220 @@
   white-space: pre-line;
   line-height: 1.5;
 }
+
+button.back {
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--weight-medium);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit {
+  display: flex;
+  align-items: center;
+  height: var(--tap);
+  padding: 0 12px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+/* Add / edit a recipe */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px var(--gutter) calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.fieldset legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.inlineAdd {
+  display: flex;
+  gap: 8px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.short {
+  max-width: 120px;
+}
+
+.textarea {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg);
+  font: inherit;
+  font-size: var(--text-input);
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border: 2px solid var(--color-primary);
+  padding: 9px 11px;
+}
+
+.hint {
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}
+
+.problem {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-low);
+  color: var(--color-text-low);
+  font-weight: var(--weight-medium);
+}
+
+.formButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.danger {
+  color: var(--color-text-out);
+}
+
+.formActions {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px var(--gutter) calc(env(safe-area-inset-bottom) + 12px);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+/* The match review */
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 24px;
+  border-top: 1px solid var(--color-border-row);
+}
+
+.reviewRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px var(--gutter);
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+.reviewRow[data-asked='true'] {
+  background: var(--color-bg-low);
+}
+
+.reviewLine {
+  font-weight: var(--weight-semibold);
+}
+
+.reviewAsk {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-low);
+}
+
+.reviewQuick {
+  align-self: flex-start;
+}
+
+.reviewField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.select {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg);
+  font: inherit;
+  font-size: var(--text-input);
+  color: var(--color-text);
+}
+
+.select:focus {
+  padding: 0 11px;
+}
+
+.subs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subChip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.reviewCompact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--row-list);
+  padding: 8px 4px 8px var(--gutter);
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+.reviewText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reviewSummary {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+button.edit {
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--weight-medium);
+}

@@ -34,7 +34,8 @@ export function TripDone({ results, houseUpdates, itemsById }: Props) {
         <h1 className={styles.doneTitle}>Trip logged</h1>
         <p className={styles.subtitle}>
           {tripSummary(results)}
-          {houseUpdates > 0 && ` Updated ${houseUpdates} ${houseUpdates === 1 ? 'amount' : 'amounts'} around the house.`}
+          {houseUpdates > 0 &&
+            ` Updated ${houseUpdates} ${houseUpdates === 1 ? 'amount' : 'amounts'} around the house.`}
         </p>
       </div>
 

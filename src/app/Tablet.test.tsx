@@ -74,6 +74,14 @@ describe('tablet (two panes)', () => {
     expect(within(details()).getByRole('link', { name: 'Close' })).toHaveAttribute('href', '/recipes');
   });
 
+  it('a new recipe is written in the right pane, beside the Recipes list', async () => {
+    renderAt('/recipes');
+    await userEvent.click(await screen.findByRole('link', { name: 'New recipe' }));
+    expect(await within(details()).findByRole('heading', { level: 1, name: 'New recipe' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Recipes' })).toBeInTheDocument();
+    expect(within(details()).getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/recipes');
+  });
+
   it('a direct link to an item shows Inventory beside it', async () => {
     renderAt('/item/it-eggs');
     expect(await within(await detailsLoaded()).findByRole('heading', { level: 1, name: 'Eggs' })).toBeInTheDocument();

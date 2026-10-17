@@ -135,6 +135,9 @@ export function parseIngredientLine(text: string): ParsedIngredient {
         s = second.rest.trim();
       }
     }
+  } else if (/^(?:pinch|dash)\b/i.test(s)) {
+    // "pinch of salt": one, unsaid
+    quantity = 1;
   } else if (/^an?\s+/i.test(s)) {
     // "a pinch of salt", "an onion"
     quantity = 1;

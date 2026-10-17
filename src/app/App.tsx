@@ -15,6 +15,7 @@ import { QuickAddScreen } from '../screens/add/QuickAddScreen';
 import { ShoppingListScreen } from '../screens/list/ShoppingListScreen';
 import { JustShoppedScreen } from '../screens/shopped/JustShoppedScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { RecipeEditScreen } from '../screens/recipes/RecipeEditScreen';
 import { RecipeScreen } from '../screens/recipes/RecipeScreen';
 import { RecipesScreen } from '../screens/recipes/RecipesScreen';
 
@@ -79,6 +80,8 @@ function PhoneRoutes() {
       <Route element={<StackLayout />}>
         <Route path="item/:id" element={<ItemDetailScreen />} />
         <Route path="recipe/:id" element={<RecipeScreen />} />
+        <Route path="recipe/:id/edit" element={<RecipeEditScreen />} />
+        <Route path="recipes/new" element={<RecipeEditScreen />} />
         <Route path="shopped" element={<JustShoppedScreen />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -91,10 +94,11 @@ function PhoneRoutes() {
  * detail pane (item detail, or "Select an item"). Opening an item keeps the list
  * that opened it on the left. Just shopped takes the whole screen.
  */
+const DETAIL_PATHS = ['/item/:id', '/recipe/:id', '/recipe/:id/edit', '/recipes/new'];
+
 function WideRoutes() {
   const location = useLocation();
-  const isDetail =
-    matchPath('/item/:id', location.pathname) !== null || matchPath('/recipe/:id', location.pathname) !== null;
+  const isDetail = DETAIL_PATHS.some((p) => matchPath(p, location.pathname) !== null);
   useEffect(() => {
     if (!isDetail) rememberListLocation(location);
   }, [isDetail, location]);
@@ -120,6 +124,8 @@ function WideRoutes() {
         <Routes>
           <Route path="item/:id" element={<ItemDetailScreen />} />
           <Route path="recipe/:id" element={<RecipeScreen />} />
+          <Route path="recipe/:id/edit" element={<RecipeEditScreen />} />
+          <Route path="recipes/new" element={<RecipeEditScreen />} />
           <Route path="*" element={<SelectItem />} />
         </Routes>
       </section>

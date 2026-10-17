@@ -36,7 +36,8 @@ export function OpenOneSheet({ parent, leftovers, onClose }: Props) {
   const [unit, setUnit] = useState<string | undefined>(parent.packageSize?.unit ?? parent.unit);
   const [locationId, setLocationId] = useState<ID | null | undefined>(undefined);
   const [subtract, setSubtract] = useState(parent.amount > 0);
-  const location = locationId !== undefined ? locationId : data ? defaultLocation(data.locations, leftovers, parent) : null;
+  const location =
+    locationId !== undefined ? locationId : data ? defaultLocation(data.locations, leftovers, parent) : null;
 
   const parentUnit = parent.unit ?? 'unit';
   const after = Math.max(0, parent.amount - 1);
@@ -73,7 +74,11 @@ export function OpenOneSheet({ parent, leftovers, onClose }: Props) {
         <span className={sheetStyles.label}>Name</span>
         <input className={sheetStyles.textInput} value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <UnitPicker value={unit} options={withUnit(withUnit(LEFTOVER_UNITS, parent.unit), parent.packageSize?.unit)} onChange={setUnit} />
+      <UnitPicker
+        value={unit}
+        options={withUnit(withUnit(LEFTOVER_UNITS, parent.unit), parent.packageSize?.unit)}
+        onChange={setUnit}
+      />
       <LocationPicker
         value={location}
         onChange={setLocationId}

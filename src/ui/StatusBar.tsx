@@ -1,12 +1,5 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
-import {
-  applyTap,
-  ariaValueText,
-  dragToAmount,
-  fillFraction,
-  getStatus,
-  tickPositions,
-} from '../domain/rules';
+import { applyTap, ariaValueText, dragToAmount, fillFraction, getStatus, tickPositions } from '../domain/rules';
 import type { Item } from '../domain/types';
 import styles from './StatusBar.module.css';
 

@@ -16,6 +16,7 @@ import {
 import { defaultCategories, guessCategory } from '../domain/categories';
 import { buildInventory } from '../domain/inventory';
 import { RECENT_WINDOW_MS } from '../domain/quickAdd';
+import { cleanRecipeInput, recipeProblem, type RecipeInput } from '../domain/recipeEdit';
 import { missingForShopping, pantryContext } from '../domain/recipeMatch';
 import { findDuplicates, nameKey } from '../domain/text';
 import { houseOrder, tripOrder } from '../domain/trip';
@@ -270,6 +271,57 @@ export class Repo {
         return { added: toAdd.map((a) => a.name) };
       },
     );
+  }
+
+  /**
+   * Adds a recipe, or saves changes to one. Names are unique: a clash (perhaps typed
+   * on the other phone) comes back as a problem instead of a second recipe.
+   */
+  async saveRecipe(input: RecipeInput, id?: ID): Promise<{ id: ID } | { problem: string }> {
+    const { db } = this;
+    const clean = cleanRecipeInput(input);
+    return db.transaction('rw', db.recipes, async () => {
+      const problem = recipeProblem(clean, await db.recipes.toArray(), id);
+      if (problem) return { problem };
+      const now = this.now();
+      const existing = id ? await db.recipes.get(id) : undefined;
+      const recipe: Recipe = {
+        id: existing?.id ?? this.id(),
+        ...clean,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      };
+      await db.recipes.put(recipe);
+      return { id: recipe.id };
+    });
+  }
+
+  async deleteRecipe(id: ID): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.recipes, db.tombstones, () => db.recipes.delete(id));
+  }
+
+  // ---------- Staples (Settings → Staples) ----------
+
+  /** Adds a staple, or returns the existing one with the same name. */
+  async addStaple(name: string): Promise<ID> {
+    const { db } = this;
+    return db.transaction('rw', db.staples, async () => {
+      const existing = (await db.staples.toArray()).find((s) => nameKey(s.name) === nameKey(name));
+      if (existing) return existing.id;
+      const id = this.id();
+      await db.staples.add({ id, name: nameKey(name), updatedAt: this.now() });
+      return id;
+    });
+  }
+
+  async renameStaple(id: ID, name: string): Promise<void> {
+    if (nameKey(name)) await this.db.staples.update(id, { name: nameKey(name), updatedAt: this.now() });
+  }
+
+  async deleteStaple(id: ID): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.staples, db.tombstones, () => db.staples.delete(id));
   }
 
   // ---------- Categories (Settings → Categories) ----------

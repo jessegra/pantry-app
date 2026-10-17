@@ -99,8 +99,8 @@ export function ItemDetailScreen() {
           <div className={styles.notice}>
             <span className={styles.noticeTitle}>Not tracked yet</span>
             <span className={styles.noticeText}>
-              Add a unit and par to get a status bar. You'll be asked for the rest when {item.name} first needs to go
-              on the list.
+              Add a unit and par to get a status bar. You'll be asked for the rest when {item.name} first needs to go on
+              the list.
             </span>
             <Button className={styles.noticeAction} size={44} onClick={() => setSheet('setup')}>
               Set unit &amp; par
@@ -120,7 +120,11 @@ export function ItemDetailScreen() {
             }
             onClick={() => setSheet('packageSize')}
           />
-          <FieldRow label="Par" value={item.par != null ? plural(item.par) : undefined} onClick={() => setSheet('par')} />
+          <FieldRow
+            label="Par"
+            value={item.par != null ? plural(item.par) : undefined}
+            onClick={() => setSheet('par')}
+          />
           <FieldRow
             label="Low threshold"
             value={thresholdValue}

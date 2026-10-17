@@ -5,7 +5,7 @@ import { toRows, type Row } from '../domain/layout';
 import { rankRecent } from '../domain/quickAdd';
 import { checkRecipe, missingForShopping, pantryContext, type RecipeCheck } from '../domain/recipeMatch';
 import { groupListByStore, isSetUp, type StoreGroup } from '../domain/rules';
-import type { ID, Item, ListEntry, Location, LocationGroup, Store, Recipe } from '../domain/types';
+import type { ID, Item, ListEntry, Location, LocationGroup, Recipe, Staple, Store } from '../domain/types';
 import { repo } from './repo';
 
 const { db } = repo;
@@ -269,4 +269,38 @@ export function useRecipe(id: ID | undefined): RecipeData | null | undefined {
       toAdd: missingForShopping(recipe, ctx, entries),
     };
   }, [id]);
+}
+
+export interface RecipeEditData {
+  /** undefined when adding a new recipe. */
+  recipe?: Recipe;
+  /** Live pantry items (not leftovers), by name: what an ingredient can link to. */
+  items: Item[];
+  staples: Staple[];
+  /** Every tag in use, for the tag chips. */
+  tags: string[];
+}
+
+/** What the recipe editor needs. null = editing a recipe that no longer exists. */
+export function useRecipeEdit(id: ID | undefined): RecipeEditData | null | undefined {
+  return useLiveQuery(async () => {
+    const [recipes, items, staples] = await Promise.all([
+      db.recipes.toArray(),
+      db.items.toArray(),
+      db.staples.toArray(),
+    ]);
+    const recipe = id ? recipes.find((r) => r.id === id) : undefined;
+    if (id && !recipe) return null;
+    return {
+      recipe,
+      items: items.filter((i) => !i.isLeftover && i.archivedAt == null).sort((a, b) => a.name.localeCompare(b.name)),
+      staples,
+      tags: [...new Set(recipes.flatMap((r) => r.tags))].sort((a, b) => a.localeCompare(b)),
+    };
+  }, [id]);
+}
+
+/** Settings → Staples, by name. */
+export function useStaples(): Staple[] | undefined {
+  return useLiveQuery(async () => (await db.staples.toArray()).sort((a, b) => a.name.localeCompare(b.name)), []);
 }

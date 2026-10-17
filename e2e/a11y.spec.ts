@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 // M9 audit: axe (WCAG 2.2 A/AA) and the 44×44px tap-target rule from CLAUDE.md,
 // on every screen and the main sheets, at phone and tablet sizes.
 
-const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promise<void> }> = [
+const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promise<void>; sheet?: false }> = [
   { name: 'inventory', path: './' },
   { name: 'item (configured)', path: 'item/it-blackbeans' },
   { name: 'item (not set up)', path: 'item/it-rice' },
@@ -26,10 +26,22 @@ const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promis
   { name: 'shopping list', path: 'list' },
   { name: 'recipes', path: 'recipes' },
   { name: 'recipe', path: 'recipe/rc-tacos' },
+  { name: 'new recipe', path: 'recipes/new' },
+  {
+    name: 'recipe match review',
+    path: 'recipe/rc-tacos/edit',
+    sheet: false,
+    open: async (p) => {
+      await p.getByRole('button', { name: 'Check ingredient matches' }).click();
+      await p.getByRole('button', { name: /Change match for .*black beans/ }).click();
+      await p.getByRole('combobox', { name: /Also does/ }).selectOption({ label: 'Rice' });
+    },
+  },
   { name: 'just shopped', path: 'shopped' },
   { name: 'settings: locations', path: 'settings/locations' },
   { name: 'settings: stores', path: 'settings/stores' },
   { name: 'settings: categories', path: 'settings/categories' },
+  { name: 'settings: staples', path: 'settings/staples' },
   { name: 'settings: more', path: 'settings/more' },
 ];
 
@@ -79,7 +91,7 @@ for (const size of SIZES) {
         await expect(page.locator('h1, h2').first()).toBeVisible();
         if (s.open) {
           await s.open(page);
-          await expect(page.locator('dialog[open]')).toBeVisible();
+          if (s.sheet !== false) await expect(page.locator('dialog[open]')).toBeVisible();
         }
         const axe = await new AxeBuilder({ page })
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

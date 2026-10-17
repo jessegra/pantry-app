@@ -7,52 +7,52 @@
 
 :root {
   /* Surfaces */
-  --color-bg: #FFFFFF;
-  --color-surface-muted: #F6F8FB;      /* group headers, section spacers, settings rows */
-  --color-surface-input: #F1F4F8;      /* search field, icon tiles, segmented control track */
+  --color-bg: #ffffff;
+  --color-surface-muted: #f6f8fb; /* group headers, section spacers, settings rows */
+  --color-surface-input: #f1f4f8; /* search field, icon tiles, segmented control track */
   --color-scrim: rgba(20, 24, 31, 0.55); /* behind bottom sheets */
 
   /* Lines */
-  --color-border: #E3E7ED;             /* header/nav/section dividers */
-  --color-border-row: #EEF1F5;         /* between list rows */
-  --color-border-control: #C9D1DC;     /* inputs, secondary buttons */
-  --color-border-chip: #D5DBE3;        /* unselected chips */
+  --color-border: #e3e7ed; /* header/nav/section dividers */
+  --color-border-row: #eef1f5; /* between list rows */
+  --color-border-control: #c9d1dc; /* inputs, secondary buttons */
+  --color-border-chip: #d5dbe3; /* unselected chips */
 
   /* Text */
-  --color-text: #14181F;
-  --color-text-secondary: #4A5462;     /* labels, inactive nav */
-  --color-text-muted: #5A6472;         /* captions, counts (4.9:1 on white) */
-  --color-text-disabled: #8A94A3;      /* checked-off list rows, chevrons */
-  --color-icon: #3B4656;
+  --color-text: #14181f;
+  --color-text-secondary: #4a5462; /* labels, inactive nav */
+  --color-text-muted: #5a6472; /* captions, counts (4.9:1 on white) */
+  --color-text-disabled: #8a94a3; /* checked-off list rows, chevrons */
+  --color-icon: #3b4656;
 
   /* Brand blue: buttons, navigation, links, selection */
-  --color-primary: #1D5BD6;            /* white text on it = 5.6:1 */
-  --color-primary-hover: #1648AD;
-  --color-primary-strong: #123B8A;     /* headings on tint */
-  --color-primary-tint: #EAF0FC;       /* info panels, selected tiles */
-  --color-primary-wash: #F7F9FE;       /* auto-added list rows */
-  --color-on-primary: #FFFFFF;
+  --color-primary: #1d5bd6; /* white text on it = 5.6:1 */
+  --color-primary-hover: #1648ad;
+  --color-primary-strong: #123b8a; /* headings on tint */
+  --color-primary-tint: #eaf0fc; /* info panels, selected tiles */
+  --color-primary-wash: #f7f9fe; /* auto-added list rows */
+  --color-on-primary: #ffffff;
 
   /* Status bar fills */
-  --color-bar-track: #E4E9F0;
-  --color-bar-ok: #2F68D8;
-  --color-bar-low: #E39B1B;
-  --color-bar-out: #CF3B2E;
+  --color-bar-track: #e4e9f0;
+  --color-bar-ok: #2f68d8;
+  --color-bar-low: #e39b1b;
+  --color-bar-out: #cf3b2e;
   --color-bar-tick: rgba(255, 255, 255, 0.9);
 
   /* Status text (labels beside bars, pills) */
-  --color-text-low: #8A5300;
-  --color-bg-low: #FDF1DC;
-  --color-text-out: #B42318;
+  --color-text-low: #8a5300;
+  --color-bg-low: #fdf1dc;
+  --color-text-out: #b42318;
 
   /* Progress (just-shopped) */
-  --color-progress-current: #8DB0EE;
-  --color-progress-skipped: #AEB7C4;
+  --color-progress-current: #8db0ee;
+  --color-progress-skipped: #aeb7c4;
 
   /* Type */
   --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --text-xs: 11px;   /* nav badge */
-  --text-sm: 12px;   /* nav labels, uppercase section labels (600, +0.06em) */
+  --text-xs: 11px; /* nav badge */
+  --text-sm: 12px; /* nav labels, uppercase section labels (600, +0.06em) */
   --text-caption: 13px;
   --text-body-sm: 14px;
   --text-body: 15px; /* row names */
@@ -67,22 +67,22 @@
 
   /* Spacing & sizing */
   --gutter: 16px;
-  --tap: 44px;              /* minimum target */
-  --row-inventory: 46px;    /* min height of an inventory row */
+  --tap: 44px; /* minimum target */
+  --row-inventory: 46px; /* min height of an inventory row */
   --row-detail: 48px;
   --row-list: 56px;
   --header-location: 44px;
   --header-group: 28px;
-  --bar-height: 14px;       /* visual track; tap zone is the full row */
-  --bar-height-lg: 22px;    /* item detail */
+  --bar-height: 14px; /* visual track; tap zone is the full row */
+  --bar-height-lg: 22px; /* item detail */
   --icon-tile: 30px;
   --nav-height: 52px;
 
   /* Radius */
-  --radius-sm: 6px;   /* checkboxes */
-  --radius-md: 8px;   /* icon tiles, small buttons */
-  --radius-lg: 10px;  /* buttons, inputs, cards */
-  --radius-xl: 12px;  /* large buttons */
+  --radius-sm: 6px; /* checkboxes */
+  --radius-md: 8px; /* icon tiles, small buttons */
+  --radius-lg: 10px; /* buttons, inputs, cards */
+  --radius-xl: 12px; /* large buttons */
   --radius-sheet: 16px;
   --radius-pill: 999px;
 
@@ -90,7 +90,9 @@
   --motion-fast: 120ms ease;
 }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+}
 body {
   margin: 0;
   background: var(--color-bg);
@@ -99,8 +101,24 @@ body {
   font-size: var(--text-body);
   -webkit-tap-highlight-color: transparent;
 }
-*, *::before, *::after { box-sizing: border-box; }
-button, input, select, textarea { font: inherit; color: inherit; }
-a { color: var(--color-primary); }
-a:hover { color: var(--color-primary-hover); }
-.tabular { font-variant-numeric: tabular-nums; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--color-primary);
+}
+a:hover {
+  color: var(--color-primary-hover);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

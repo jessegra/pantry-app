@@ -154,7 +154,12 @@ function CategorySheet({ item, onClose, save }: SheetProps) {
 function UnitSheet({ item, onClose, save }: SheetProps) {
   const [unit, setUnit] = useState(item.unit);
   return (
-    <EditSheet title="Unit" description="What one tap on the bar counts." onClose={onClose} onSave={() => void save({ unit })}>
+    <EditSheet
+      title="Unit"
+      description="What one tap on the bar counts."
+      onClose={onClose}
+      onSave={() => void save({ unit })}
+    >
       <UnitPicker value={unit} options={withUnit(ITEM_UNITS, item.unit)} onChange={setUnit} />
     </EditSheet>
   );
@@ -171,7 +176,12 @@ function PackageSheet({ item, onClose, save }: SheetProps) {
       onSave={() => void save({ packageSize: amount ? { amount, unit } : undefined })}
     >
       <Stepper label={`1 ${item.unit ?? 'package'} =`} value={amount} onChange={setAmount} suffix={unit} />
-      <UnitPicker label="Measured in" value={unit} options={withUnit(PACKAGE_UNITS, item.packageSize?.unit)} onChange={(u) => setUnit(u ?? 'oz')} />
+      <UnitPicker
+        label="Measured in"
+        value={unit}
+        options={withUnit(PACKAGE_UNITS, item.packageSize?.unit)}
+        onChange={(u) => setUnit(u ?? 'oz')}
+      />
     </EditSheet>
   );
 }
@@ -247,7 +257,14 @@ function StoreSheet({ item, onClose, save, which }: SheetProps & { which: 'prefe
       onClose={onClose}
       onSave={() => void save({ [key]: storeId })}
     >
-      <StorePicker label={title} value={storeId} onChange={setStoreId} stores={stores} allowNone onCreate={(n) => repo.addStore(n)} />
+      <StorePicker
+        label={title}
+        value={storeId}
+        onChange={setStoreId}
+        stores={stores}
+        allowNone
+        onCreate={(n) => repo.addStore(n)}
+      />
     </EditSheet>
   );
 }

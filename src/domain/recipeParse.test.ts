@@ -28,6 +28,8 @@ describe('parseIngredientLine', () => {
     expect(p('2 large eggs')).toMatchObject({ quantity: 2, unit: undefined, name: 'large eggs' });
     expect(p('1 (15 oz) can black beans')).toMatchObject({ quantity: 1, unit: 'can', name: 'black beans' });
     expect(p('a pinch of salt')).toMatchObject({ quantity: 1, unit: 'pinch', name: 'salt' });
+    expect(p('pinch of salt')).toMatchObject({ quantity: 1, unit: 'pinch', name: 'salt' });
+    expect(p('Dash hot sauce')).toMatchObject({ quantity: 1, unit: 'dash', name: 'hot sauce' });
     expect(p('an onion')).toMatchObject({ quantity: 1, name: 'onion' });
     expect(p('8 tortillas')).toMatchObject({ quantity: 8, unit: undefined, name: 'tortillas' });
   });

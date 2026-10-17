@@ -3,6 +3,7 @@ import { ScreenBody, ScreenHeader, ScreenTitle } from '../../ui/Screen';
 import { CategoriesSettings } from './CategoriesSettings';
 import { LocationsSettings } from './LocationsSettings';
 import { MoreSettings } from './MoreSettings';
+import { StaplesSettings } from './StaplesSettings';
 import { StoresSettings } from './StoresSettings';
 import styles from './Settings.module.css';
 
@@ -11,6 +12,7 @@ const SECTIONS = [
   { key: 'stores', label: 'Stores' },
   // Not in the mockups: owner requests.
   { key: 'categories', label: 'Categories' },
+  { key: 'staples', label: 'Staples' },
   { key: 'more', label: 'More' },
 ] as const;
 
@@ -34,6 +36,7 @@ export function SettingsScreen() {
         {section === 'locations' && <LocationsSettings />}
         {section === 'stores' && <StoresSettings />}
         {section === 'categories' && <CategoriesSettings />}
+        {section === 'staples' && <StaplesSettings />}
         {section === 'more' && <MoreSettings />}
       </ScreenBody>
     </>

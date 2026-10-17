@@ -4,7 +4,7 @@ import { useRecipes, type RecipeView } from '../../data/hooks';
 import { repo } from '../../data/repo';
 import { ingredientWords, type Readiness } from '../../domain/recipeMatch';
 import { nameKey } from '../../domain/text';
-import { Button } from '../../ui/Button';
+import { Button, ButtonLink } from '../../ui/Button';
 import { Chip } from '../../ui/Chip';
 import { Icon } from '../../ui/Icon';
 import { ScreenBody, ScreenHeader, ScreenTitle } from '../../ui/Screen';
@@ -50,7 +50,12 @@ export function RecipesScreen() {
   return (
     <>
       <ScreenHeader>
-        <ScreenTitle>Recipes</ScreenTitle>
+        <div className={styles.titleRow}>
+          <ScreenTitle>Recipes</ScreenTitle>
+          <ButtonLink to="/recipes/new" variant="secondary" size={44}>
+            New recipe
+          </ButtonLink>
+        </div>
         {all.length > 0 && (
           <>
             <label className={styles.search}>

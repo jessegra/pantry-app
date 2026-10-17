@@ -53,7 +53,7 @@ export function RecipeScreen() {
 
   return (
     <>
-      <TopBar />
+      <TopBar editId={recipe.id} />
       <ScreenBody>
         <div className={styles.head}>
           <h1 className={styles.title}>{recipe.name}</h1>
@@ -153,7 +153,7 @@ export function RecipeScreen() {
   );
 }
 
-function TopBar() {
+function TopBar({ editId }: { editId?: string }) {
   const wide = useWide();
   const list = lastListLocation();
   return (
@@ -166,6 +166,11 @@ function TopBar() {
         <Link to="/recipes" className={styles.back}>
           <Icon name="chevronLeft" size={20} strokeWidth={2} />
           Recipes
+        </Link>
+      )}
+      {editId && (
+        <Link to={`/recipe/${editId}/edit`} className={styles.edit}>
+          Edit
         </Link>
       )}
     </header>
