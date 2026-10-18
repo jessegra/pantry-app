@@ -50,7 +50,10 @@ test('core loop works offline', async ({ page, context }) => {
 
   // Inventory: full bars.
   await page.getByRole('link', { name: 'Back to inventory' }).click();
-  await expect(page.getByRole('slider', { name: 'Black beans', exact: true })).toHaveAttribute('aria-valuetext', '8 cans of 8');
+  await expect(page.getByRole('slider', { name: 'Black beans', exact: true })).toHaveAttribute(
+    'aria-valuetext',
+    '8 cans of 8',
+  );
   await expect(page.getByRole('slider', { name: 'Chicken thighs' })).toHaveAttribute('aria-valuetext', '4 lb of 4');
   await expect(page.getByRole('slider', { name: 'Coffee beans' })).toHaveAttribute('aria-valuetext', '2½ bags of 2');
   await expect(page.getByRole('img', { name: 'On shopping list' })).toHaveCount(0);

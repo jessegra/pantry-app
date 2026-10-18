@@ -45,9 +45,11 @@ const SCREENS: Array<{ name: string; path: string; open?: (page: Page) => Promis
   { name: 'settings: more', path: 'settings/more' },
 ];
 
-const SIZES = [
+const SIZES: Array<{ name: string; width: number; height: number; textSize?: string }> = [
   { name: 'phone', width: 390, height: 844 },
   { name: 'tablet', width: 1024, height: 768 },
+  // Settings → More → Text size, at its largest (src/app/textSize.ts).
+  { name: 'phone, largest text', width: 390, height: 844, textSize: 'largest' },
 ];
 
 /** Interactive elements smaller than 44×44, except links inside running text. */
@@ -84,6 +86,9 @@ for (const size of SIZES) {
 
     for (const s of SCREENS) {
       test(`${s.name}: no axe violations, 44px targets`, async ({ page }) => {
+        if (size.textSize) {
+          await page.addInitScript((v) => localStorage.setItem('pantry.textSize', v), size.textSize);
+        }
         await page.goto('./');
         await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
         await page.goto(s.path);

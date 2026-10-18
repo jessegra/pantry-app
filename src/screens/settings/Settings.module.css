@@ -388,10 +388,10 @@
   padding-left: var(--gutter);
 }
 
-/* Five segments at 390px: sized to their labels. */
+/* Five segments at 390px: sized to their labels; a second row with larger text. */
 .segmented {
   display: flex;
-  overflow-x: auto;
+  flex-wrap: wrap;
 }
 
 .segment {
@@ -464,4 +464,11 @@
   letter-spacing: 0.12em;
   font-variant-numeric: tabular-nums;
   user-select: all;
+}
+
+/* Text size */
+.textSizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

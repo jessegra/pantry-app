@@ -63,6 +63,8 @@ export interface Item {
   isLeftover: boolean;
   /** Ties a leftover to the item it came from. */
   parentId?: ID;
+  /** True = never opened into a leftover (eggs, bananas): no "Open one" button. */
+  noLeftovers?: boolean;
 
   /** Archived items are hidden from inventory and recoverable. Never hard-deleted. */
   archivedAt?: Timestamp;

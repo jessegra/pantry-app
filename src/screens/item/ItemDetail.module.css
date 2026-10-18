@@ -341,3 +341,19 @@
   font-size: var(--text-caption);
   color: var(--color-text-muted);
 }
+
+/* "Can be opened as a leftover": the whole row is the 44px target. */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  font-size: var(--text-body);
+}
+
+.checkRow input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}

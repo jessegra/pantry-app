@@ -86,6 +86,7 @@ export type ItemPatch = Partial<
     | 'amount'
     | 'preferredStoreId'
     | 'secondaryStoreId'
+    | 'noLeftovers'
     | 'category'
   >
 >;
@@ -599,6 +600,22 @@ export class Repo {
           delete l.parentId;
           l.updatedAt = t;
         });
+      await db.items.delete(itemId);
+    });
+  }
+
+  /**
+   * Removes a leftover that's been used up (or thrown out). Unlike other items it
+   * needs no archiving first: it was only ever a part of its parent.
+   */
+  async deleteLeftover(itemId: ID): Promise<void> {
+    const { db } = this;
+    await db.transaction('rw', db.items, db.listEntries, db.activity, db.tombstones, async () => {
+      const item = await db.items.get(itemId);
+      if (!item) return;
+      if (!item.isLeftover) throw new Error('Only a leftover can be removed this way');
+      await db.listEntries.where('itemId').equals(itemId).delete();
+      await db.activity.where('itemId').equals(itemId).delete();
       await db.items.delete(itemId);
     });
   }

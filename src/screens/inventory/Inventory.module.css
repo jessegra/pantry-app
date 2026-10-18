@@ -180,7 +180,7 @@
 
 .amount {
   flex: none;
-  width: 60px;
+  width: calc(60px * var(--text-scale));
   text-align: right;
   font-size: var(--text-body-sm);
   font-weight: var(--weight-medium);
@@ -260,4 +260,18 @@
   padding: 32px var(--gutter);
   color: var(--color-text-muted);
   text-align: center;
+}
+
+/* Where the amount goes, for a used-up leftover. 44px target, right-aligned like the amount. */
+.removeLeftover {
+  flex: none;
+  width: calc(60px * var(--text-scale));
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-out);
 }

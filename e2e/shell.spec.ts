@@ -5,7 +5,12 @@ test('meets the install criteria', async ({ page }) => {
   await page.goto('./');
   const href = await page.locator('link[rel="manifest"]').getAttribute('href');
   const manifest = await page.evaluate(async (url) => (await fetch(url!)).json(), href);
-  expect(manifest).toMatchObject({ name: 'Pantry', short_name: 'Pantry', display: 'standalone', theme_color: '#1D5BD6' });
+  expect(manifest).toMatchObject({
+    name: 'Pantry',
+    short_name: 'Pantry',
+    display: 'standalone',
+    theme_color: '#1D5BD6',
+  });
   const base = new URL('./', page.url()).pathname;
   expect(manifest.start_url).toBe(base);
   expect(manifest.scope).toBe(base);

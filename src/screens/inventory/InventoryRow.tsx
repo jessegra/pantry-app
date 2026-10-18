@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { repo } from '../../data/repo';
+import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { useCategory } from '../../app/categories';
 import { useNag } from '../../app/nag';
 import { useOptimisticAmount } from '../../data/useOptimisticAmount';
@@ -35,6 +38,9 @@ function TrackedPart({ row, onLongPress }: { row: Row; onLongPress: () => void }
   const nag = useNag();
   const [amount, setAmount] = useOptimisticAmount(item, (change) => nag.report(item.id, change));
   const current = { ...item, amount };
+  const [removing, setRemoving] = useState(false);
+  // A used-up leftover: a trash can instead of "0 oz", to clear it away.
+  const usedUp = item.isLeftover && amount <= 0;
   return (
     <>
       <StatusBar item={item} amount={amount} onChange={setAmount} onLongPress={onLongPress} />
@@ -45,9 +51,29 @@ function TrackedPart({ row, onLongPress }: { row: Row; onLongPress: () => void }
           </span>
         )}
       </span>
-      <span className={styles.amount} data-status={getStatus(current)}>
-        {formatAmount(current)}
-      </span>
+      {usedUp ? (
+        <button
+          type="button"
+          className={styles.removeLeftover}
+          aria-label={`Remove ${item.name}`}
+          onClick={() => setRemoving(true)}
+        >
+          <Icon name="trash" size={18} strokeWidth={1.8} />
+        </button>
+      ) : (
+        <span className={styles.amount} data-status={getStatus(current)}>
+          {formatAmount(current)}
+        </span>
+      )}
+      {removing && (
+        <ConfirmSheet
+          title={`Remove ${item.name}?`}
+          consequence="It's used up: this clears it from the pantry for good."
+          confirmLabel="Remove"
+          onConfirm={() => repo.deleteLeftover(item.id)}
+          onClose={() => setRemoving(false)}
+        />
+      )}
     </>
   );
 }

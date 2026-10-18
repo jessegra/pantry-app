@@ -10,7 +10,9 @@ import { App } from './app/App';
 import { repo } from './data/repo';
 import { watchForUpdates } from './app/updates';
 import { getSync } from './data/sync';
+import { applyTextSize } from './app/textSize';
 
+applyTextSize(); // before the first paint, so text doesn't jump
 void repo.pruneActivity();
 void repo.mergeDuplicates(); // repairs duplicates from older builds; no-op otherwise
 watchForUpdates();

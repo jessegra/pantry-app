@@ -29,7 +29,7 @@ import { ItemSetupSheet } from './ItemSetupSheet';
 import { OpenOneSheet } from './OpenOneSheet';
 import styles from './ItemDetail.module.css';
 
-type OpenSheet = EditableField | 'setup' | 'openOne' | 'delete' | null;
+type OpenSheet = EditableField | 'setup' | 'openOne' | 'delete' | 'removeLeftover' | null;
 
 export function ItemDetailScreen() {
   const { id } = useParams();
@@ -171,9 +171,24 @@ export function ItemDetailScreen() {
 
         <div className={styles.footer}>
           {!item.isLeftover && isSetUp(item) && !archived && (
-            <Button onClick={() => setSheet('openOne')}>Open one</Button>
+            <>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={!item.noLeftovers}
+                  onChange={(e) => void repo.updateItem(item.id, { noLeftovers: !e.target.checked })}
+                />
+                <span>Can be opened as a leftover</span>
+              </label>
+              {!item.noLeftovers && <Button onClick={() => setSheet('openOne')}>Open one</Button>}
+            </>
           )}
-          {archived ? (
+          {item.isLeftover && !archived ? (
+            <Button variant="text" size={44} className={styles.dangerText} onClick={() => setSheet('removeLeftover')}>
+              <Icon name="trash" size={18} strokeWidth={1.8} />
+              Remove leftover
+            </Button>
+          ) : archived ? (
             <>
               <Button variant="secondary" onClick={async () => nag.report(item.id, await repo.restoreItem(item.id))}>
                 Restore
@@ -215,7 +230,19 @@ export function ItemDetailScreen() {
           onClose={() => setSheet(null)}
         />
       )}
-      {sheet && sheet !== 'setup' && sheet !== 'openOne' && sheet !== 'delete' && (
+      {sheet === 'removeLeftover' && (
+        <ConfirmSheet
+          title={`Remove ${item.name}?`}
+          consequence="For a leftover that's used up or thrown out. It's gone from the pantry for good."
+          confirmLabel="Remove"
+          onConfirm={async () => {
+            await repo.deleteLeftover(item.id);
+            navigate(parent ? `/item/${parent.id}` : '/', { replace: true });
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet && sheet !== 'setup' && sheet !== 'openOne' && sheet !== 'delete' && sheet !== 'removeLeftover' && (
         <FieldSheet item={item} field={sheet} onClose={() => setSheet(null)} />
       )}
     </>

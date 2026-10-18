@@ -209,18 +209,22 @@
   align-items: flex-start;
   gap: 12px;
   min-height: var(--row-detail);
-  padding: 10px var(--gutter);
+  padding: 12px var(--gutter);
   border-bottom: 1px solid var(--color-border-row);
+  /* Read at the counter, a step away: bigger than a list row. */
+  font-size: var(--text-input);
+  line-height: 1.4;
 }
 
-/* The status is always a word, never colour alone. */
+/* The status is always a word, never colour alone. Sized in em so it grows with the text size. */
 .mark {
   flex: none;
-  width: 64px;
+  width: 5.6em;
+  margin-top: 1px;
   padding: 2px 0;
   border-radius: var(--radius-pill);
   text-align: center;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   font-weight: var(--weight-semibold);
   background: var(--color-surface-input);
   color: var(--color-text-secondary);
@@ -253,7 +257,7 @@
 
 .ingLink {
   color: var(--color-text-muted);
-  font-size: var(--text-caption);
+  font-size: var(--text-body-sm);
 }
 
 .inlineLink {
@@ -267,7 +271,8 @@
 .prose {
   padding: 0 var(--gutter) 16px;
   white-space: pre-line;
-  line-height: 1.5;
+  font-size: var(--text-input);
+  line-height: 1.6;
 }
 
 button.back {

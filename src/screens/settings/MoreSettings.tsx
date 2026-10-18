@@ -11,6 +11,7 @@ import { Icon } from '../../ui/Icon';
 import { getSync, useSyncStatus } from '../../data/sync';
 import { downloadBackup } from './downloadBackup';
 import { SyncSection } from './SyncSection';
+import { TextSizeSection } from './TextSizeSection';
 import styles from './Settings.module.css';
 
 const day = (t: number) =>
@@ -73,6 +74,7 @@ export function MoreSettings() {
 
   return (
     <>
+      <TextSizeSection />
       <SyncSection />
 
       <section className={styles.section} aria-labelledby="archived-h">

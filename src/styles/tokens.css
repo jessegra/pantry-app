@@ -51,16 +51,18 @@
 
   /* Type */
   --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --text-xs: 11px; /* nav badge */
-  --text-sm: 12px; /* nav labels, uppercase section labels (600, +0.06em) */
-  --text-caption: 13px;
-  --text-body-sm: 14px;
-  --text-body: 15px; /* row names */
-  --text-input: 16px; /* inputs: 16px stops iOS zoom */
-  --text-title-sm: 20px;
-  --text-title: 22px; /* screen titles */
-  --text-title-lg: 24px; /* item detail name */
-  --text-display: 36px; /* just-shopped item name */
+  /* Settings → More → Text size sets --text-scale on <html> (src/app/textSize.ts). */
+  --text-scale: 1;
+  --text-xs: calc(11px * var(--text-scale)); /* nav badge */
+  --text-sm: calc(12px * var(--text-scale)); /* nav labels, uppercase section labels (600, +0.06em) */
+  --text-caption: calc(13px * var(--text-scale));
+  --text-body-sm: calc(14px * var(--text-scale));
+  --text-body: calc(15px * var(--text-scale)); /* row names */
+  --text-input: calc(16px * var(--text-scale)); /* inputs: 16px stops iOS zoom */
+  --text-title-sm: calc(20px * var(--text-scale));
+  --text-title: calc(22px * var(--text-scale)); /* screen titles */
+  --text-title-lg: calc(24px * var(--text-scale)); /* item detail name */
+  --text-display: calc(36px * var(--text-scale)); /* just-shopped item name */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
