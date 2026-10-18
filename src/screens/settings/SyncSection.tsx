@@ -24,7 +24,9 @@ function signInError(e: unknown): string {
     case 'wrong-code':
       return 'That code isn’t right, or it has expired. Ask for a new one.';
     case 'offline':
-      return 'Can’t reach the server. Check the connection and try again.';
+      return e.message === 'The server took too long to answer'
+        ? 'The server took too long to answer. Check the connection and try again.'
+        : 'Can’t reach the server. Check the connection and try again.';
     case 'rate-limited':
       return 'Too many tries. Wait a few minutes, then try again.';
     case 'not-configured':

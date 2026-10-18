@@ -175,6 +175,7 @@ describe('signing out', () => {
 
     // Signing in again resumes: nothing replaced, and the waiting change goes up.
     expect(await b.sync.signIn('Owner', PASSWORD, 'Phone B')).toEqual({ serverEmpty: false, resumed: true });
+    await b.sync.syncNow(); // catching up runs after sign-in, not inside it
     expect(b.sync.getStatus()).toMatchObject({ phase: 'idle', pending: 0 });
     expect((await item(b, 'it-milk'))!.amount).toBe(0);
     expect(server.get('items', 'it-milk')!.data).toMatchObject({ amount: 0 });
@@ -273,6 +274,7 @@ describe('people', () => {
     expect(b.sync.getStatus().phase).toBe('signed-out');
     await b.repo.setAmount('it-milk', 0); // waits
     expect(await b.sync.signIn('kim', 'a-new-password', 'Kim’s phone')).toEqual({ serverEmpty: false, resumed: true });
+    await b.sync.syncNow();
     expect(b.sync.getStatus().pending).toBe(0);
   });
 
@@ -285,5 +287,21 @@ describe('people', () => {
     expect(a.sync.getStatus().people?.map((p) => p.name)).toEqual(['Owner']);
     await a.sync.signOutPerson('1');
     expect(a.sync.getStatus().phase).toBe('signed-out');
+  });
+});
+
+describe('a stuck connection', () => {
+  it('a sync that never answers doesn’t hold up signing in', async () => {
+    const a = await firstPhone();
+    const b = await secondPhone();
+    await server.logoutAll((await server.login('Owner', PASSWORD, 'x')).token);
+    await b.sync.syncNow(); // now signed out
+    // The server stops answering pulls (a hung request on a phone).
+    const pull = server.pull.bind(server);
+    server.pull = () => new Promise(() => {});
+    const signingIn = b.sync.signIn('Owner', PASSWORD, 'Phone B');
+    await expect(signingIn).resolves.toEqual({ serverEmpty: false, resumed: true });
+    server.pull = pull;
+    void a;
   });
 });

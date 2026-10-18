@@ -144,7 +144,9 @@ export class SyncEngine {
       // (Whoever signs in now is who this device's changes come from.)
       await this.writeState({ ...previous, token, user });
       this.set({ phase: 'idle', message: undefined, user });
-      await this.syncNow();
+      // Signed in now; catching up runs on its own (Settings shows "Syncing…"), so
+      // a slow or stuck sync never holds the sign-in button.
+      void this.syncNow();
       return { serverEmpty, resumed: true };
     }
     this.pending = { token, device, serverEmpty, user };

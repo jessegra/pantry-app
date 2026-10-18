@@ -81,12 +81,25 @@ export class SyncError extends Error {
   }
 }
 
+/**
+ * How long a request may take before it counts as unreachable. A phone's home-screen
+ * app can leave a request hanging after it has been in the background; without a
+ * limit, sign-in sat on "Signing in…" for good.
+ */
+export const REQUEST_TIMEOUT_MS = 20_000;
+
 /** Talks to the PHP API over HTTPS (same origin: /api). */
 export class HttpSyncApi implements SyncApi {
-  constructor(private readonly base = `${import.meta.env.BASE_URL}api`) {}
+  constructor(
+    private readonly base = `${import.meta.env.BASE_URL}api`,
+    private readonly timeoutMs = REQUEST_TIMEOUT_MS,
+  ) {}
 
   private async call<T>(method: 'GET' | 'POST', path: string, token?: string, body?: unknown): Promise<T> {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), this.timeoutMs);
     let res: Response;
+    let json: (T & { error?: string }) | null;
     try {
       res = await fetch(`${this.base}${path}`, {
         method,
@@ -96,11 +109,20 @@ export class HttpSyncApi implements SyncApi {
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         cache: 'no-store',
+        signal: abort.signal,
       });
+      json = (await res.json().catch((e: unknown) => {
+        if (abort.signal.aborted) throw e; // the body stalled too
+        return null;
+      })) as (T & { error?: string }) | null;
     } catch {
-      throw new SyncError('offline', 'Can’t reach the server');
+      throw new SyncError(
+        'offline',
+        abort.signal.aborted ? 'The server took too long to answer' : 'Can’t reach the server',
+      );
+    } finally {
+      clearTimeout(timer);
     }
-    const json = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
     if (res.ok && json) return json;
     const message = json?.error ?? `Server error (${res.status})`;
     if (res.status === 401) {
