@@ -165,6 +165,9 @@ export function MoreSettings() {
         <p className={styles.footnote}>
           Version {BUILD.version} · build {BUILD.sha} · {stamp(BUILD.time)}
         </p>
+        <p className={styles.footnote}>
+          Running from <strong>{runningFrom()}</strong> {installed() ? 'as an installed app' : 'in a browser tab'}
+        </p>
         <div className={styles.addOne}>
           <Button variant="secondary" onClick={() => void update()}>
             Check for updates
@@ -220,4 +223,16 @@ export function MoreSettings() {
       )}
     </>
   );
+}
+
+/** "pantry.jessegravenor.com": which copy of the app this is (an old home-screen icon may point elsewhere). */
+function runningFrom(): string {
+  const path = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${location.host}${path}`;
+}
+
+/** Opened from the home screen (or installed on a desktop), rather than in a browser tab. */
+function installed(): boolean {
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true; // iOS
+  return standalone || (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches);
 }

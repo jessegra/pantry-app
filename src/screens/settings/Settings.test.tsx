@@ -225,3 +225,16 @@ describe('settings: more', () => {
     expect(await repo.db.items.get('it-milk')).toBeUndefined();
   });
 });
+
+describe('about', () => {
+  it('says which address this copy of the app runs from', async () => {
+    render(
+      <MemoryRouter initialEntries={['/settings/more']}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/^Running from/)).toHaveTextContent(
+      `Running from ${location.host} in a browser tab`,
+    );
+  });
+});
