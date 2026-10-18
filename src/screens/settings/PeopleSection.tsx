@@ -26,7 +26,7 @@ function devicesText(p: PersonWithDevices, now: number): string {
 
 type Sheet_ =
   | { kind: 'invite' }
-  | { kind: 'code'; code: Code; isNew: boolean }
+  | { kind: 'code'; code: Code; isNew: boolean; isMe?: boolean }
   | { kind: 'manage'; person: PersonWithDevices }
   | { kind: 'rename'; person: PersonWithDevices }
   | { kind: 'signOut'; person: PersonWithDevices }
@@ -102,7 +102,7 @@ export function PeopleSection() {
           onClose={close}
         />
       )}
-      {sheet?.kind === 'code' && <CodeSheet code={sheet.code} isNew={sheet.isNew} onClose={close} />}
+      {sheet?.kind === 'code' && <CodeSheet code={sheet.code} isNew={sheet.isNew} isMe={sheet.isMe} onClose={close} />}
       {sheet?.kind === 'manage' && (
         <ManageSheet
           person={sheet.person}
@@ -112,7 +112,9 @@ export function PeopleSection() {
             if (kind === 'code') {
               const person = sheet.person;
               close();
-              void act(async () => setSheet({ kind: 'code', code: await sync.newCode(person.id), isNew: false }));
+              void act(async () =>
+                setSheet({ kind: 'code', code: await sync.newCode(person.id), isNew: false, isMe: person.id === me }),
+              );
             } else setSheet({ kind, person: sheet.person });
           }}
           onClose={close}
@@ -186,10 +188,14 @@ function ManageSheet({
         <Button variant="secondary" onClick={() => onPick('rename')}>
           Rename
         </Button>
-        {!isMe && (
-          <Button variant="secondary" onClick={() => onPick('code')}>
-            New sign-in code
-          </Button>
+        <Button variant="secondary" onClick={() => onPick('code')}>
+          {isMe ? 'Get a sign-in code' : 'New sign-in code'}
+        </Button>
+        {isMe && (
+          <p className={styles.footnoteTight}>
+            Forgot your password, or signing in on a new device? A code lets you choose a new password there. Your other
+            devices stay signed in.
+          </p>
         )}
         {person.devices.length > 0 && (
           <Button variant="secondary" onClick={() => onPick('signOut')}>
@@ -276,7 +282,17 @@ function NameSheet({
 }
 
 /** The code, big, with how to use it and a way to send it. */
-function CodeSheet({ code, isNew, onClose }: { code: Code; isNew: boolean; onClose: () => void }) {
+function CodeSheet({
+  code,
+  isNew,
+  isMe = false,
+  onClose,
+}: {
+  code: Code;
+  isNew: boolean;
+  isMe?: boolean;
+  onClose: () => void;
+}) {
   const [copied, setCopied] = useState('');
   const until = new Date(code.expiresAt).toLocaleString(undefined, {
     weekday: 'short',
@@ -284,8 +300,10 @@ function CodeSheet({ code, isNew, onClose }: { code: Code; isNew: boolean; onClo
     minute: '2-digit',
   });
   const steps = isNew
-    ? `Open ${SITE}, go to Settings → More → Sync, tap “I have an invite code”, enter ${code.code}, and choose a password.`
-    : `For a forgotten password. Go to Settings → More → Sync, tap “I have an invite code”, enter ${code.code}, and choose a new password.`;
+    ? `Open ${SITE}, go to Settings → More → Sync, tap “I have a code”, enter ${code.code}, and choose a password.`
+    : isMe
+      ? `On the other device, open ${SITE}, go to Settings → More → Sync, tap “I have a code”, enter ${code.code}, and choose a new password. This device stays signed in.`
+      : `For a forgotten password. Go to Settings → More → Sync, tap “I have a code”, enter ${code.code}, and choose a new password.`;
   const message = isNew ? `Join our pantry: ${steps}` : `A new Pantry password: ${steps}`;
   const share = async () => {
     try {
@@ -302,7 +320,7 @@ function CodeSheet({ code, isNew, onClose }: { code: Code; isNew: boolean; onClo
     <Sheet
       open
       onClose={onClose}
-      title={isNew ? `Invite code for ${code.name}` : `Sign-in code for ${code.name}`}
+      title={isNew ? `Invite code for ${code.name}` : isMe ? 'Your sign-in code' : `Sign-in code for ${code.name}`}
       description={`Works once, until ${until}.`}
       actions={
         <>

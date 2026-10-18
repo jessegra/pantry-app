@@ -66,7 +66,7 @@ describe('people', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Get a code' }));
     const sheet = await screen.findByRole('dialog', { name: 'Invite code for Kim' });
     const code = within(sheet).getByText(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/).textContent!;
-    expect(sheet).toHaveTextContent(`tap “I have an invite code”, enter ${code}`);
+    expect(sheet).toHaveTextContent(`tap “I have a code”, enter ${code}`);
     await user.click(within(sheet).getByRole('button', { name: 'Done' }));
     await sheetClosed();
 
@@ -88,8 +88,8 @@ describe('people', () => {
     const user = userEvent.setup();
     renderAt('/settings/more');
     const region = await syncRegion();
-    await user.click(within(region).getByRole('button', { name: 'I have an invite code' }));
-    await user.type(within(region).getByRole('textbox', { name: 'Invite code' }), code.toLowerCase());
+    await user.click(within(region).getByRole('button', { name: 'I have a code' }));
+    await user.type(within(region).getByRole('textbox', { name: 'Invite or sign-in code' }), code.toLowerCase());
     await user.type(within(region).getByLabelText('Choose a password'), 'short');
     expect(within(region).getByRole('button', { name: 'Join' })).toBeDisabled();
     await user.type(within(region).getByLabelText('Choose a password'), '-but-longer');
@@ -108,8 +108,8 @@ describe('people', () => {
     const user = userEvent.setup();
     renderAt('/settings/more');
     const region = await syncRegion();
-    await user.click(within(region).getByRole('button', { name: 'I have an invite code' }));
-    await user.type(within(region).getByRole('textbox', { name: 'Invite code' }), 'AAAA-BBBB');
+    await user.click(within(region).getByRole('button', { name: 'I have a code' }));
+    await user.type(within(region).getByRole('textbox', { name: 'Invite or sign-in code' }), 'AAAA-BBBB');
     await user.type(within(region).getByLabelText('Choose a password'), 'a-good-password');
     await user.click(within(region).getByRole('button', { name: 'Join' }));
     expect(await within(region).findByRole('alert')).toHaveTextContent('That code isn’t right, or it has expired.');
@@ -163,8 +163,26 @@ describe('people', () => {
     await user.click(within(people()).getByRole('button', { name: 'Owner (you), manage' }));
     const sheet = screen.getByRole('dialog', { name: 'Owner (you)' });
     expect(within(sheet).queryByRole('button', { name: /Remove/ })).toBeNull();
-    expect(within(sheet).queryByRole('button', { name: 'New sign-in code' })).toBeNull();
     expect(within(sheet).getByRole('button', { name: 'Sign out all my devices' })).toBeInTheDocument();
+  });
+
+  it('gets a sign-in code for yourself, for another device', async () => {
+    const user = userEvent.setup();
+    await ownerConnected();
+    renderAt('/settings/more');
+    await syncRegion();
+    await user.click(within(people()).getByRole('button', { name: 'Owner (you), manage' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Owner (you)' })).getByRole('button', { name: 'Get a sign-in code' }),
+    );
+    const sheet = await screen.findByRole('dialog', { name: 'Your sign-in code' });
+    expect(sheet).toHaveTextContent('This device stays signed in.');
+    const code = within(sheet).getByText(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/).textContent!;
+    // Used on another device: a new password, and this one is still signed in.
+    const other = new SyncEngine(new PantryDB(`other-${crypto.randomUUID()}`), server);
+    await other.join(code, 'a-brand-new-password', 'Phone app');
+    await engine.syncNow();
+    expect(engine.getStatus().phase).toBe('idle');
   });
 });
 

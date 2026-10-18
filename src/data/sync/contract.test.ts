@@ -209,4 +209,15 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
     expect(await errorKind(api.pull(back.token, 0))).toBe('signed-out');
     expect((await api.me(token)).people.some((p) => p.id === id)).toBe(false);
   });
+
+  it('a sign-in code you make for yourself keeps your other devices signed in', async () => {
+    const invite = await api.invite(token, somebody());
+    const kim = await api.join(invite.code, 'first-password', 'Phone');
+    const own = await api.newCode(kim.token, kim.user.id);
+    const tablet = await api.join(own.code, 'second-password', 'Tablet');
+    expect(tablet.user).toEqual(kim.user);
+    expect(await errorKind(api.pull(kim.token, 0))).toBe('none'); // still signed in
+    expect((await api.login(kim.user.name, 'second-password', 'x')).user.id).toBe(kim.user.id);
+    await api.removePerson(token, kim.user.id);
+  });
 });

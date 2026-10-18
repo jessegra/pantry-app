@@ -36,6 +36,9 @@ export const UI_ICONS = {
   swapStore: 'M4 8h13l-3-3M20 16H7l3 3',
   auto: 'M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4',
   trash: 'M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12',
+  eye: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  eyeOff:
+    'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 4l16 16',
   // An open recipe book.
   recipes: 'M12 6.5C10.3 5 7.8 4.5 4 4.5v13c3.8 0 6.3.5 8 2 1.7-1.5 4.2-2 8-2v-13c-3.8 0-6.3.5-8 2zM12 6.5v13',
   // drag handle is six dots: render as circles r=1.6 at (9|15, 6|12|18), fill currentColor

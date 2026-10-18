@@ -36,8 +36,8 @@ async function connect(page: Page, name: string, who: Credentials, choice: { dia
   await goTo(page, 'Settings');
   const region = syncRegion(page);
   if ('code' in who) {
-    await region.getByRole('button', { name: 'I have an invite code' }).click();
-    await region.getByLabel('Invite code').fill(who.code);
+    await region.getByRole('button', { name: 'I have a code' }).click();
+    await region.getByLabel('Invite or sign-in code').fill(who.code);
     await region.getByLabel('Choose a password').fill(who.password);
   } else {
     await region.getByLabel('Your name').fill(who.name);

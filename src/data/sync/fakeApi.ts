@@ -30,6 +30,7 @@ interface Device {
 interface Invite {
   name?: string;
   userId?: string;
+  createdBy: string;
   expiresAt: number;
 }
 
@@ -115,7 +116,9 @@ export class FakeSyncApi implements SyncApi {
     if (invite.userId) {
       const user = this.person(invite.userId);
       user.password = password;
-      for (const [t, d] of this.devices) if (d.userId === user.id) this.devices.delete(t);
+      // Like the server: only a code from someone else signs their other devices out.
+      if (invite.createdBy !== user.id)
+        for (const [t, d] of this.devices) if (d.userId === user.id) this.devices.delete(t);
       return this.issue(user, device);
     }
     let name = invite.name!;
@@ -140,18 +143,18 @@ export class FakeSyncApi implements SyncApi {
   }
 
   async invite(token: string, name: string) {
-    this.guard('invite', token);
+    const me = this.guard('invite', token)!;
     const n = this.cleanName(name);
     if (this.nameTaken(n)) throw new SyncError('server', `Someone is already called ${n}`);
-    const { key: _key, ...code } = this.storeCode({ name: n, expiresAt: this.now() + DAY });
+    const { key: _key, ...code } = this.storeCode({ name: n, createdBy: me.userId, expiresAt: this.now() + DAY });
     void _key;
     return code;
   }
 
   async newCode(token: string, userId: string) {
-    this.guard('newCode', token);
+    const me = this.guard('newCode', token)!;
     this.person(userId);
-    const { key: _key, ...code } = this.storeCode({ userId, expiresAt: this.now() + DAY });
+    const { key: _key, ...code } = this.storeCode({ userId, createdBy: me.userId, expiresAt: this.now() + DAY });
     void _key;
     return code;
   }

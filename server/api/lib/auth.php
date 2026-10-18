@@ -281,7 +281,7 @@ function people_join(PDO $pdo, array $body): array
     if (!is_string($password) || strlen($password) < PASSWORD_MIN) {
         throw new HttpError(400, 'Choose a password of at least ' . PASSWORD_MIN . ' characters');
     }
-    $stmt = $pdo->prepare('SELECT name, user_id FROM invites WHERE code_hash = ? AND expires_at > ?');
+    $stmt = $pdo->prepare('SELECT name, user_id, created_by FROM invites WHERE code_hash = ? AND expires_at > ?');
     $stmt->execute([is_string($code) ? code_hash($code) : '', now_ms()]);
     $invite = $stmt->fetch();
     if ($invite === false) {
@@ -295,8 +295,12 @@ function people_join(PDO $pdo, array $body): array
             $id = (int) $invite['user_id'];
             person($pdo, $id); // still here?
             $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $id]);
-            // A new password: their other devices sign in again.
-            $pdo->prepare('DELETE FROM devices WHERE user_id = ?')->execute([$id]);
+            // Someone else reset it (a lost phone, a forgotten password): their other
+            // devices sign in again. A code they made for themselves, from a device
+            // they're signed in on, leaves those devices be.
+            if ((int) $invite['created_by'] !== $id) {
+                $pdo->prepare('DELETE FROM devices WHERE user_id = ?')->execute([$id]);
+            }
         } else {
             if (name_taken($pdo, $invite['name'])) {
                 // Taken since (renamed onto it): still let them in, with a told-apart name.

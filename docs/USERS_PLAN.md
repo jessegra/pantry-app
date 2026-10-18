@@ -18,6 +18,15 @@ decisions (Oct 2026):
   show "Added by Kim"; an item shows "Changed 2 hours ago by Kim". Only once there are
   two or more people, and "you" for your own.
 
+## Added after (Oct 2026, owner request)
+
+- **Show password** (eye button) on every password field.
+- **Forgot your password?** on the sign-in form explains the way back: a sign-in code.
+- **Get a sign-in code for yourself** (People → your name), from a device you're signed in
+  on: use it on another device to choose a new password. A code you make for yourself
+  leaves your other devices signed in; one someone else makes signs them out (that one is
+  for when you've lost access). "I have a code" covers invites and sign-in codes.
+
 ## Server
 
 - `users` (id, name unique, password_hash, from_config, created_at). Created on first

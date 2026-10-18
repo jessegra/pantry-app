@@ -472,3 +472,23 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.forgot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-input);
+  font-size: var(--text-body-sm);
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.forgot ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

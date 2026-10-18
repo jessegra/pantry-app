@@ -9,6 +9,7 @@ import { Sheet } from '../../ui/Sheet';
 import { useSubmitOnce } from '../../ui/useSubmitOnce';
 import { downloadBackup } from './downloadBackup';
 import { PeopleSection } from './PeopleSection';
+import { PasswordField } from '../../ui/PasswordField';
 import { syncStatusText } from './syncText';
 import styles from './Settings.module.css';
 
@@ -41,6 +42,7 @@ export function SyncSection() {
   const status = useSyncStatus();
   const sync = getSync();
   const [mode, setMode] = useState<'password' | 'code'>('password');
+  const [forgot, setForgot] = useState(false);
   const [name, setName] = useState(status.user?.name ?? '');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -134,21 +136,12 @@ export function SyncSection() {
                   onChange={(e) => setName(e.target.value)}
                 />
               </label>
-              <label className={sheetStyles.field}>
-                <span className={sheetStyles.label}>Password</span>
-                <input
-                  className={sheetStyles.textInput}
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </label>
+              <PasswordField label="Password" autoComplete="current-password" value={password} onChange={setPassword} />
             </>
           ) : (
             <>
               <label className={sheetStyles.field}>
-                <span className={sheetStyles.label}>Invite code</span>
+                <span className={sheetStyles.label}>Invite or sign-in code</span>
                 <input
                   className={sheetStyles.textInput}
                   autoComplete="one-time-code"
@@ -159,23 +152,13 @@ export function SyncSection() {
                   onChange={(e) => setCode(e.target.value)}
                 />
               </label>
-              <div className={sheetStyles.field}>
-                <label htmlFor="join-password" className={sheetStyles.label}>
-                  Choose a password
-                </label>
-                <input
-                  id="join-password"
-                  aria-describedby="join-password-hint"
-                  className={sheetStyles.textInput}
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <span id="join-password-hint" className={styles.footnoteTight}>
-                  At least 8 characters. You’ll use it with your name to sign in on other devices.
-                </span>
-              </div>
+              <PasswordField
+                label="Choose a password"
+                autoComplete="new-password"
+                value={password}
+                onChange={setPassword}
+                hint="At least 8 characters. You’ll use it with your name to sign in on other devices."
+              />
             </>
           )}
           {!signedOut && (
@@ -205,8 +188,37 @@ export function SyncSection() {
               setError('');
             }}
           >
-            {mode === 'code' ? 'Sign in with a password instead' : 'I have an invite code'}
+            {mode === 'code' ? 'Sign in with a password instead' : 'I have a code'}
           </Button>
+          {mode === 'password' && (
+            <>
+              <Button
+                variant="text"
+                size={44}
+                className={styles.textLeft}
+                aria-expanded={forgot}
+                onClick={() => setForgot(!forgot)}
+              >
+                Forgot your password?
+              </Button>
+              {forgot && (
+                <div className={styles.forgot}>
+                  <p>You’ll need a sign-in code, then you choose a new password with it.</p>
+                  <ul>
+                    <li>
+                      <strong>Still signed in on another device?</strong> There, go to Settings → More → Sync → People,
+                      tap your name, and tap Get a sign-in code.
+                    </li>
+                    <li>
+                      <strong>Or ask someone else in your household</strong> to do the same from their phone, tapping
+                      your name.
+                    </li>
+                  </ul>
+                  <p>Then tap “I have a code” here.</p>
+                </div>
+              )}
+            </>
+          )}
         </form>
       )}
 
