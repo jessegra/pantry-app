@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { guessDeviceName, getSync, useSyncStatus } from '../../data/sync';
 import { SyncError } from '../../data/sync/api';
+import type { SignInStep } from '../../data/sync/engine';
 import { plural } from '../../domain/text';
 import { Button } from '../../ui/Button';
 import { ConfirmSheet } from '../../ui/ConfirmSheet';
@@ -15,8 +16,22 @@ import styles from './Settings.module.css';
 
 const SITE = typeof location === 'undefined' ? 'this site' : location.host;
 
+/** Longer than the 20 s request limit, so a slow server reports itself first. */
+const SIGN_IN_LIMIT_MS = 30_000;
+
+class StuckError extends Error {
+  constructor(readonly step: SignInStep) {
+    super(step);
+  }
+}
+
 /** Plain-language reasons a sign-in failed. */
 function signInError(e: unknown): string {
+  if (e instanceof StuckError) {
+    return e.step === 'saving'
+      ? 'The server said yes, but saving on this phone is stuck. Close the app fully (swipe it away), open it again, and check Settings → More → Sync: it may already be signed in. (Stuck while saving.)'
+      : 'Still waiting for the server after 30 seconds. Check the connection and try again. (Stuck at the server.)';
+  }
   if (!(e instanceof SyncError)) return 'Something went wrong. Try again.';
   switch (e.kind) {
     case 'wrong-password':
@@ -45,6 +60,7 @@ export function SyncSection() {
   const sync = getSync();
   const [mode, setMode] = useState<'password' | 'code'>('password');
   const [forgot, setForgot] = useState(false);
+  const [step, setStep] = useState<SignInStep | null>(null);
   const [name, setName] = useState(status.user?.name ?? '');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -67,15 +83,29 @@ export function SyncSection() {
   const signIn = () =>
     submit(async () => {
       setError('');
+      let current: SignInStep = 'server';
+      const onStep = (s: SignInStep) => {
+        current = s;
+        setStep(s);
+      };
+      // Never an endless spinner: after a while, say which step it's stuck on.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const tooLong = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new StuckError(current)), SIGN_IN_LIMIT_MS);
+      });
       try {
         const dev = device.trim() || guessDeviceName();
-        const { serverEmpty, resumed } =
-          mode === 'code' ? await sync.join(code, password, dev) : await sync.signIn(name.trim(), password, dev);
+        const attempt =
+          mode === 'code' ? sync.join(code, password, dev, onStep) : sync.signIn(name.trim(), password, dev, onStep);
+        const { serverEmpty, resumed } = await Promise.race([attempt, tooLong]);
         setPassword('');
         setCode('');
         if (!resumed) setChoice({ serverEmpty });
       } catch (e) {
         setError(signInError(e));
+      } finally {
+        clearTimeout(timer);
+        setStep(null);
       }
     });
 
@@ -178,7 +208,15 @@ export function SyncSection() {
             type="submit"
             disabled={!password || (mode === 'code' && (!code.trim() || password.length < 8)) || busy}
           >
-            {busy ? 'Signing in…' : mode === 'code' ? 'Join' : signedOut ? 'Sign in again' : 'Connect'}
+            {busy
+              ? step === 'saving'
+                ? 'Saving on this phone…'
+                : 'Checking with the server…'
+              : mode === 'code'
+                ? 'Join'
+                : signedOut
+                  ? 'Sign in again'
+                  : 'Connect'}
           </Button>
           <Button
             variant="text"

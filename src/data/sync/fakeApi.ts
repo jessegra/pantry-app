@@ -130,14 +130,18 @@ export class FakeSyncApi implements SyncApi {
 
   async me(token: string) {
     const d = this.guard('me', token)!;
-    const devices = [...this.devices.values()].sort((a, b) => b.lastSeen - a.lastSeen);
+    const devices = [...this.devices.entries()]
+      .map(([t, x]) => ({ ...x, id: t.slice(0, 16), current: t === token }))
+      .sort((a, b) => b.lastSeen - a.lastSeen);
     const { id, name } = this.person(d.userId);
     return {
       user: { id, name },
       people: this.users.map((u) => ({
         id: u.id,
         name: u.name,
-        devices: devices.filter((x) => x.userId === u.id).map((x) => ({ name: x.name, lastSeen: x.lastSeen })),
+        devices: devices
+          .filter((x) => x.userId === u.id)
+          .map((x) => ({ id: x.id, name: x.name, lastSeen: x.lastSeen, current: x.current })),
       })),
     };
   }
@@ -182,6 +186,13 @@ export class FakeSyncApi implements SyncApi {
     for (const [t, d] of this.devices) if (d.userId === userId) this.devices.delete(t);
     for (const [k, i] of this.invites) if (i.userId === userId) this.invites.delete(k);
     this.users = this.users.filter((u) => u.id !== userId);
+  }
+
+  async removeDevice(token: string, deviceId: string) {
+    this.guard('removeDevice', token);
+    const t = [...this.devices.keys()].find((k) => k.slice(0, 16) === deviceId);
+    if (!t) throw new SyncError('server', 'No such device');
+    this.devices.delete(t);
   }
 
   async push(token: string, changes: Change[]) {

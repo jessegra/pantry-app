@@ -27,8 +27,17 @@ export interface Person {
   name: string;
 }
 
+export interface Device {
+  /** A short handle for removing it. */
+  id: string;
+  name: string;
+  lastSeen: number;
+  /** The device asking. */
+  current: boolean;
+}
+
 export interface PersonWithDevices extends Person {
-  devices: Array<{ name: string; lastSeen: number }>;
+  devices: Device[];
 }
 
 export interface SignedIn {
@@ -57,6 +66,8 @@ export interface SyncApi {
   signOutPerson(token: string, userId: string): Promise<void>;
   /** Someone else, never yourself. */
   removePerson(token: string, userId: string): Promise<void>;
+  /** Signs out one device, by its id from me(). */
+  removeDevice(token: string, deviceId: string): Promise<void>;
   push(token: string, changes: Change[]): Promise<{ accepted: number; ignored: number }>;
   pull(token: string, since: number, limit?: number): Promise<PullResult>;
   logout(token: string): Promise<void>;
@@ -166,6 +177,10 @@ export class HttpSyncApi implements SyncApi {
 
   async removePerson(token: string, userId: string) {
     await this.call('POST', '/people/remove', token, { userId });
+  }
+
+  async removeDevice(token: string, deviceId: string) {
+    await this.call('POST', '/devices/remove', token, { deviceId });
   }
 
   push(token: string, changes: Change[]) {

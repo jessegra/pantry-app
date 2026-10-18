@@ -36,6 +36,9 @@ interface SyncState {
   people?: PersonWithDevices[];
 }
 
+/** Where a sign-in is: waiting for the server, or saving on this device. Shown on the button. */
+export type SignInStep = 'server' | 'saving';
+
 export type SyncPhase =
   | 'disconnected' // never connected, or signed out on this device
   | 'idle' // connected, nothing happening
@@ -127,13 +130,29 @@ export class SyncEngine {
    * Step 1: check the household password. Nothing changes on this device yet; the
    * caller then picks startWithThisDevice (server empty) or startWithServerData.
    */
-  async signIn(name: string, password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
-    return this.signedIn(await this.api.login(name, password, device), device);
+  async signIn(
+    name: string,
+    password: string,
+    device: string,
+    onStep?: (step: SignInStep) => void,
+  ): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+    onStep?.('server');
+    const result = await this.api.login(name, password, device);
+    onStep?.('saving');
+    return this.signedIn(result, device);
   }
 
   /** Step 1, with an invite (someone new) or a new-password code instead of a password. */
-  async join(code: string, password: string, device: string): Promise<{ serverEmpty: boolean; resumed: boolean }> {
-    return this.signedIn(await this.api.join(code, password, device), device);
+  async join(
+    code: string,
+    password: string,
+    device: string,
+    onStep?: (step: SignInStep) => void,
+  ): Promise<{ serverEmpty: boolean; resumed: boolean }> {
+    onStep?.('server');
+    const result = await this.api.join(code, password, device);
+    onStep?.('saving');
+    return this.signedIn(result, device);
   }
 
   private async signedIn({ token, serverEmpty, user }: SignedIn, device: string) {
@@ -272,6 +291,19 @@ export class SyncEngine {
   async signOutPerson(userId: string): Promise<void> {
     await this.api.signOutPerson(await this.token(), userId);
     if (userId === this.status.user?.id) {
+      const state = await this.readState();
+      if (state) await this.writeState({ ...state, token: '' });
+      this.set({ phase: 'signed-out', message: SIGNED_OUT_MESSAGE });
+      return;
+    }
+    await this.refreshPeople();
+  }
+
+  /** One device. If it's this one, this device is signed out (its data stays). */
+  async removeDevice(deviceId: string): Promise<void> {
+    const current = this.status.people?.some((p) => p.devices.some((d) => d.id === deviceId && d.current));
+    await this.api.removeDevice(await this.token(), deviceId);
+    if (current) {
       const state = await this.readState();
       if (state) await this.writeState({ ...state, token: '' });
       this.set({ phase: 'signed-out', message: SIGNED_OUT_MESSAGE });

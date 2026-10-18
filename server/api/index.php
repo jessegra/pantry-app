@@ -11,6 +11,7 @@
 //   POST /api/people/rename     { userId, name }
 //   POST /api/people/sign-out   { userId }: that person's devices
 //   POST /api/people/remove     { userId }: someone else
+//   POST /api/devices/remove    { deviceId }: one device (an id from /me)
 //   POST /api/logout            this device
 //   POST /api/logout-all        every device of everyone
 // People: docs/USERS_PLAN.md.
@@ -71,6 +72,11 @@ try {
         case 'POST /people/sign-out':
             auth_require($pdo);
             people_sign_out($pdo, read_json());
+            send_json(200, ['ok' => true]);
+            break;
+        case 'POST /devices/remove':
+            auth_require($pdo);
+            people_remove_device($pdo, read_json());
             send_json(200, ['ok' => true]);
             break;
         case 'POST /people/remove':

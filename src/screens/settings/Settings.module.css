@@ -492,3 +492,26 @@
   flex-direction: column;
   gap: 6px;
 }
+
+.deviceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border-row);
+}
+
+.deviceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--row-list);
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+.deviceText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

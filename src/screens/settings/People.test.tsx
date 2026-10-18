@@ -186,6 +186,25 @@ describe('people', () => {
   });
 });
 
+describe('devices', () => {
+  it('removes a stray device from the list; this device can’t be removed there', async () => {
+    const user = userEvent.setup();
+    await ownerConnected();
+    await server.login('Owner', PASSWORD, 'Android phone');
+    await engine.refreshPeople();
+    renderAt('/settings/more');
+    await syncRegion();
+    await user.click(within(people()).getByRole('button', { name: 'Owner (you), manage' }));
+    const sheet = screen.getByRole('dialog', { name: 'Owner (you)' });
+    const devices = within(sheet).getByRole('list', { name: 'Devices' });
+    expect(within(devices).getByText('Owner’s phone (this device)')).toBeInTheDocument();
+    expect(within(devices).getAllByRole('button')).toHaveLength(1);
+    await user.click(within(devices).getByRole('button', { name: /^Remove device Android phone/ }));
+    await waitFor(() => expect(within(sheet).queryByText('Android phone')).toBeNull());
+    expect(engine.getStatus().phase).toBe('idle');
+  });
+});
+
 describe('who did it', () => {
   it('says who added a list entry and who last changed an item', async () => {
     await ownerConnected();

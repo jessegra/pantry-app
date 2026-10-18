@@ -3,6 +3,7 @@ import { getSync, useSyncStatus } from '../../data/sync';
 import { SyncError, type Code, type PersonWithDevices } from '../../data/sync/api';
 import { relativeTime } from '../../domain/text';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { ConfirmSheet } from '../../ui/ConfirmSheet';
 import { Sheet } from '../../ui/Sheet';
 import sheetStyles from '../../ui/Sheet.module.css';
@@ -105,9 +106,11 @@ export function PeopleSection() {
       {sheet?.kind === 'code' && <CodeSheet code={sheet.code} isNew={sheet.isNew} isMe={sheet.isMe} onClose={close} />}
       {sheet?.kind === 'manage' && (
         <ManageSheet
-          person={sheet.person}
+          // Fresh from the latest list, so a removed device disappears from the sheet.
+          person={people.find((p) => p.id === sheet.person.id) ?? sheet.person}
           isMe={sheet.person.id === me}
           now={now}
+          onRemoveDevice={(id) => act(() => sync.removeDevice(id))}
           onPick={(kind) => {
             if (kind === 'code') {
               const person = sheet.person;
@@ -163,12 +166,14 @@ function ManageSheet({
   person,
   isMe,
   now,
+  onRemoveDevice,
   onPick,
   onClose,
 }: {
   person: PersonWithDevices;
   isMe: boolean;
   now: number;
+  onRemoveDevice: (deviceId: string) => Promise<void>;
   onPick: (kind: 'rename' | 'code' | 'signOut' | 'remove') => void;
   onClose: () => void;
 }) {
@@ -184,6 +189,31 @@ function ManageSheet({
         </Button>
       }
     >
+      {person.devices.length > 0 && (
+        <ul className={styles.deviceList} aria-label="Devices">
+          {person.devices.map((d) => (
+            <li key={d.id} className={styles.deviceRow}>
+              <span className={styles.deviceText}>
+                <span>
+                  {d.name}
+                  {d.current && ' (this device)'}
+                </span>
+                <span className={styles.metaLine}>Seen {relativeTime(d.lastSeen, now)}</span>
+              </span>
+              {!d.current && (
+                <button
+                  type="button"
+                  className={styles.delete}
+                  aria-label={`Remove device ${d.name}, seen ${relativeTime(d.lastSeen, now)}`}
+                  onClick={() => void onRemoveDevice(d.id)}
+                >
+                  <Icon name="trash" size={18} strokeWidth={1.8} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className={styles.manageList}>
         <Button variant="secondary" onClick={() => onPick('rename')}>
           Rename

@@ -199,8 +199,14 @@ function person(PDO $pdo, int $id): array
 function people_me(PDO $pdo, Session $s): array
 {
     $devices = [];
-    foreach ($pdo->query('SELECT user_id, name, last_seen FROM devices ORDER BY last_seen DESC') as $d) {
-        $devices[(int) $d['user_id']][] = ['name' => $d['name'], 'lastSeen' => (int) $d['last_seen']];
+    foreach ($pdo->query('SELECT token_hash, user_id, name, last_seen FROM devices ORDER BY last_seen DESC') as $d) {
+        $devices[(int) $d['user_id']][] = [
+            // A short handle for removing it: part of the token's hash, no use for signing in.
+            'id' => substr($d['token_hash'], 0, 16),
+            'name' => $d['name'],
+            'lastSeen' => (int) $d['last_seen'],
+            'current' => $d['token_hash'] === $s->tokenHash,
+        ];
     }
     $people = [];
     foreach ($pdo->query('SELECT id, name FROM users ORDER BY id') as $u) {
@@ -354,5 +360,19 @@ function people_remove(PDO $pdo, Session $s, array $body): void
     } catch (Throwable $e) {
         $pdo->rollBack();
         throw $e;
+    }
+}
+
+/** Signs one device out (a phone no longer used, or a stray sign-in). */
+function people_remove_device(PDO $pdo, array $body): void
+{
+    $id = $body['deviceId'] ?? null;
+    if (!is_string($id) || !preg_match('/^[0-9a-f]{16}$/', $id)) {
+        throw new HttpError(400, 'No such device');
+    }
+    $stmt = $pdo->prepare('DELETE FROM devices WHERE LEFT(token_hash, 16) = ?');
+    $stmt->execute([$id]);
+    if ($stmt->rowCount() === 0) {
+        throw new HttpError(404, 'No such device');
     }
 }

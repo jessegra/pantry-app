@@ -220,4 +220,21 @@ describe.each(apis)('sync contract: %s', (_name, make) => {
     expect((await api.login(kim.user.name, 'second-password', 'x')).user.id).toBe(kim.user.id);
     await api.removePerson(token, kim.user.id);
   });
+
+  it('lists each device with an id, marks the asking one, and removes one device', async () => {
+    const invite = await api.invite(token, somebody());
+    const kim = await api.join(invite.code, 'first-password', 'Phone');
+    const stray = await api.login(invite.name, 'first-password', 'Stray sign-in');
+    const mine = (await api.me(kim.token)).people.find((p) => p.id === kim.user.id)!;
+    expect(mine.devices.map((d) => [d.name, d.current]).sort()).toEqual([
+      ['Phone', true],
+      ['Stray sign-in', false],
+    ]);
+    expect(mine.devices.every((d) => /^[0-9a-f]{16}$/.test(d.id))).toBe(true);
+    await api.removeDevice(kim.token, mine.devices.find((d) => d.name === 'Stray sign-in')!.id);
+    expect(await errorKind(api.pull(stray.token, 0))).toBe('signed-out');
+    expect(await errorKind(api.pull(kim.token, 0))).toBe('none');
+    expect(await errorKind(api.removeDevice(kim.token, '0'.repeat(16)))).toBe('server');
+    await api.removePerson(token, kim.user.id);
+  });
 });

@@ -1,5 +1,7 @@
 // The sign-in form: seeing what you typed, and what to do about a forgotten password.
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
+import { getSync } from '../../data/sync';
+import type { SignInStep } from '../../data/sync/engine';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
@@ -54,5 +56,28 @@ describe('sign-in form', () => {
     await user.click(forgot);
     expect(within(region).getByText(/Still signed in on another device\?/)).toBeInTheDocument();
     expect(within(region).getByText(/tap Get a sign-in code/)).toBeInTheDocument();
+  });
+
+  it('shows each step, and says where it got stuck instead of spinning for ever', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      // The server answers, then saving on this phone never finishes.
+      getSync().signIn = (_n: string, _p: string, _d: string, onStep?: (s: SignInStep) => void) => {
+        onStep?.('server');
+        onStep?.('saving');
+        return new Promise(() => {});
+      };
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const region = await syncRegion();
+      await user.type(within(region).getByLabelText('Your name'), 'Owner');
+      await user.type(within(region).getByLabelText('Password'), 'whatever');
+      await user.click(within(region).getByRole('button', { name: 'Connect' }));
+      expect(await within(region).findByRole('button', { name: 'Saving on this phone…' })).toBeDisabled();
+      await act(() => vi.advanceTimersByTimeAsync(30_000));
+      expect(await within(region).findByRole('alert')).toHaveTextContent('saving on this phone is stuck');
+      expect(within(region).getByRole('button', { name: 'Connect' })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
