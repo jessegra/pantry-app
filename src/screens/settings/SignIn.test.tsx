@@ -1,15 +1,17 @@
 // The sign-in form: seeing what you typed, and what to do about a forgotten password.
 import { act, render, screen, within } from '@testing-library/react';
-import { getSync } from '../../data/sync';
 import type { SignInStep } from '../../data/sync/engine';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../app/App';
 import { resetNagSession } from '../../app/nag';
 import { repo } from '../../data/repo';
-import { setSync } from '../../data/sync';
+import { getSync, setSync } from '../../data/sync';
 import { SyncEngine } from '../../data/sync/engine';
 import { FakeSyncApi } from '../../data/sync/fakeApi';
+
+// A sign-in's catch-up sync runs on after the test; let it finish before the next test clears the database.
+afterEach(() => getSync().idle());
 
 beforeEach(async () => {
   localStorage.clear();

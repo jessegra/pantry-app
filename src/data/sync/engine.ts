@@ -319,6 +319,11 @@ export class SyncEngine {
 
   // ---------- Syncing ----------
 
+  /** Resolves once no sync is running (tests wait on it so one test's sync can't spill into the next). */
+  async idle(): Promise<void> {
+    while (this.running) await this.running.catch(() => {});
+  }
+
   /** Push then pull. Safe to call often: one run at a time, with one follow-up if asked again. */
   syncNow(): Promise<void> {
     if (this.running) {

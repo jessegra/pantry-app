@@ -6,7 +6,7 @@ import { App } from '../../app/App';
 import { resetNagSession } from '../../app/nag';
 import { PantryDB } from '../../data/db';
 import { repo, Repo } from '../../data/repo';
-import { setSync } from '../../data/sync';
+import { getSync, setSync } from '../../data/sync';
 import { SyncEngine } from '../../data/sync/engine';
 import { FakeSyncApi } from '../../data/sync/fakeApi';
 import { sheetClosed } from '../../test/helpers';
@@ -14,6 +14,9 @@ import { sheetClosed } from '../../test/helpers';
 const PASSWORD = 'test-household-password';
 let server: FakeSyncApi;
 let engine: SyncEngine;
+
+// A sign-in's catch-up sync runs on after the test; let it finish before the next test clears the database.
+afterEach(() => getSync().idle());
 
 beforeEach(async () => {
   localStorage.clear();

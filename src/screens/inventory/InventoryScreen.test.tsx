@@ -132,6 +132,26 @@ describe('inventory', () => {
     expect(JSON.parse(localStorage.getItem('pantry.collapsedLocations')!)).toEqual(['loc-fridge']);
   });
 
+  it('collapses a whole group, remembers it, and opens it while searching', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+    const pantry = screen.getByRole('button', { name: 'Pantry, 3 locations, 1 low' });
+    expect(pantry).toHaveAttribute('aria-expanded', 'true');
+    await user.click(pantry);
+    expect(pantry).toHaveAttribute('aria-expanded', 'false');
+    // Its locations (Shelf 1 and 2, Floor bin) fold away; others stay.
+    expect(screen.queryByRole('button', { name: /^Shelf 1/ })).toBeNull();
+    expect(screen.queryByRole('slider', { name: 'Black beans' })).toBeNull();
+    expect(screen.getByRole('slider', { name: 'Milk' })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('pantry.collapsedLocations')!)).toEqual(['group:grp-pantry']);
+    // A search shows matches inside it anyway.
+    await user.type(screen.getByRole('searchbox', { name: 'Search pantry' }), 'black');
+    expect(await screen.findByRole('slider', { name: 'Black beans' })).toBeInTheDocument();
+    await user.clear(screen.getByRole('searchbox', { name: 'Search pantry' }));
+    await user.click(screen.getByRole('button', { name: 'Pantry, 3 locations, 1 low' }));
+    expect(screen.getByRole('slider', { name: 'Black beans' })).toBeInTheDocument();
+  });
+
   it('shows the set-up row and the empty location', async () => {
     await renderApp();
     expect(screen.getByRole('link', { name: 'Set up' })).toHaveAttribute('href', '/item/it-rice');

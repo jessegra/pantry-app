@@ -6,7 +6,8 @@ import { Chip } from '../../ui/Chip';
 import { Icon } from '../../ui/Icon';
 import { ScreenBody } from '../../ui/Screen';
 import { LocationSection } from './LocationSection';
-import { useCollapsed } from './useCollapsed';
+import { groupKey, useCollapsed } from './useCollapsed';
+import { GroupSection } from './GroupSection';
 import styles from './Inventory.module.css';
 
 export function InventoryScreen() {
@@ -66,13 +67,18 @@ export function InventoryScreen() {
             s.kind === 'location' ? (
               renderLocation(s.location, false)
             ) : (
-              <div key={s.group.id} role="group" aria-label={s.group.name}>
-                <h2 className={styles.groupHeader}>
-                  <span>{s.group.name}</span>
-                  {s.lowCount > 0 && <span className={styles.groupLow}>{s.lowCount} low</span>}
-                </h2>
+              <GroupSection
+                key={s.group.id}
+                name={s.group.name}
+                id={s.group.id}
+                lowCount={s.lowCount}
+                locationCount={s.locations.length}
+                // Like locations: searching or filtering opens everything.
+                expanded={narrowed || !isCollapsed(groupKey(s.group.id))}
+                onToggle={() => toggle(groupKey(s.group.id))}
+              >
                 {s.locations.map((l) => renderLocation(l, true))}
-              </div>
+              </GroupSection>
             ),
           )}
         {data && shown.length === 0 && narrowed && (

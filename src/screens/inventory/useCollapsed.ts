@@ -13,7 +13,10 @@ function load(): Set<string> {
   }
 }
 
-/** Which location headers are collapsed. Remembered per device (SPEC §4.1). */
+/** A group's key in the same remembered set as locations (ids never clash: groups are prefixed). */
+export const groupKey = (id: ID) => `group:${id}`;
+
+/** Which location and group headers are collapsed. Remembered per device (SPEC §4.1). */
 export function useCollapsed(): [(id: ID | null) => boolean, (id: ID | null) => void] {
   const [collapsed, setCollapsed] = useState(load);
   const isCollapsed = useCallback((id: ID | null) => collapsed.has(id ?? UNASSIGNED), [collapsed]);
